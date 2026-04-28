@@ -1,20 +1,21 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import clsx from 'clsx'
- 
+import { usePartyStore } from '@/store/partyStore'
+
 const NAV_ITEMS = [
   { to: '/dashboard', icon: '🗺️', label: 'Voyage' },
   { to: '/tasks',     icon: '📜', label: 'Tasks'  },
   { to: '/party',     icon: '⚓', label: 'Crew'   },
   { to: '/profile',   icon: '🏴‍☠️', label: 'Log'  },
 ]
- 
+
 interface AppShellProps {
   children: React.ReactNode
 }
- 
+
 export function AppShell({ children }: AppShellProps) {
   const location = useLocation()
- 
+
   return (
     <div className="flex flex-col min-h-dvh max-w-2xl mx-auto">
       {/* Top header */}
@@ -26,16 +27,15 @@ export function AppShell({ children }: AppShellProps) {
               Chronicles
             </span>
           </h1>
-          {/* Arc indicator */}
           <ArcIndicator />
         </div>
       </header>
- 
+
       {/* Page content */}
       <main className="flex-1 overflow-y-auto pb-24">
         {children}
       </main>
- 
+
       {/* Bottom navigation */}
       <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-2xl z-10
                       bg-parchment-50 border-t border-parchment-300 shadow-parchment-lg
@@ -47,10 +47,7 @@ export function AppShell({ children }: AppShellProps) {
               <NavLink
                 key={item.to}
                 to={item.to}
-                className={clsx(
-                  'nav-item flex-1 text-center',
-                  isActive && 'active'
-                )}
+                className={clsx('nav-item flex-1 text-center relative', isActive && 'active')}
               >
                 <span className="text-xl leading-none">{item.icon}</span>
                 <span className={clsx(
@@ -60,7 +57,7 @@ export function AppShell({ children }: AppShellProps) {
                   {item.label}
                 </span>
                 {isActive && (
-                  <span className="absolute bottom-0 w-6 h-0.5 bg-sea-500 rounded-t-full" />
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-sea-500 rounded-t-full" />
                 )}
               </NavLink>
             )
@@ -70,18 +67,63 @@ export function AppShell({ children }: AppShellProps) {
     </div>
   )
 }
- 
-// Small arc name in header
+
 function ArcIndicator() {
-  // Will be wired to store in real usage
+  const { currentArc, arcProgress } = usePartyStore()
+
+  // Boss active — show red warning state
+  const isBossActive = arcProgress?.status === 'boss_active'
+
+  // Arc bar fill for the tiny progress pip
+  const arcPct = currentArc && arcProgress
+    ? Math.min(100, Math.round((arcProgress.progress_xp / currentArc.xp_required) * 100))
+    : 0
+
+  if (!currentArc) {
+    return (
+      <div className="flex items-center gap-2 opacity-40">
+        <div className="text-right">
+          <div className="font-heading text-[10px] uppercase tracking-widest text-ink-400">Current Arc</div>
+          <div className="font-heading text-xs text-ink-400 font-semibold">—</div>
+        </div>
+        <div className="w-8 h-8 rounded-full bg-parchment-200 border border-parchment-300 flex items-center justify-center text-sm">
+          🗺️
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex items-center gap-2">
       <div className="text-right">
-        <div className="font-heading text-[10px] uppercase tracking-widest text-ink-400">Current Arc</div>
-        <div className="font-heading text-xs text-sea-700 font-semibold">Romance Dawn</div>
+        <div className="font-heading text-[10px] uppercase tracking-widest text-ink-400">
+          {isBossActive ? 'Boss Fight' : 'Current Arc'}
+        </div>
+        <div className={clsx(
+          'font-heading text-xs font-semibold leading-tight max-w-[120px] truncate',
+          isBossActive ? 'text-wanted-600' : 'text-sea-700'
+        )}>
+          {isBossActive ? `⚔️ ${currentArc.boss_name}` : currentArc.name}
+        </div>
+        {/* Tiny progress bar — hidden during boss fight */}
+        {!isBossActive && (
+          <div className="mt-0.5 h-1 w-20 bg-parchment-300 rounded-full overflow-hidden ml-auto">
+            <div
+              className="h-full bg-sea-400 rounded-full transition-all duration-500"
+              style={{ width: `${arcPct}%` }}
+            />
+          </div>
+        )}
       </div>
-      <div className="w-8 h-8 rounded-full bg-sea-100 border border-sea-300 flex items-center justify-center text-sm">
-        🗺️
+
+      {/* Icon circle — pulses red during boss fight */}
+      <div className={clsx(
+        'w-8 h-8 rounded-full border flex items-center justify-center text-sm transition-colors',
+        isBossActive
+          ? 'bg-wanted-100 border-wanted-400 animate-pulse'
+          : 'bg-sea-100 border-sea-300'
+      )}>
+        {isBossActive ? '⚔️' : '🗺️'}
       </div>
     </div>
   )

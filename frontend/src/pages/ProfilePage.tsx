@@ -7,16 +7,16 @@ import { Card, StatBadge, ProgressBar, Button, Spinner } from '@/components/ui'
 import { TASK_TYPES } from '@/types'
 import type { Character } from '@/types'
 import { useNavigate } from 'react-router-dom'
- 
+
 interface TaskTypeStat {
   type: string; count: number; emoji: string; label: string
 }
- 
+
 export function ProfilePage() {
   const navigate = useNavigate()
   const { profile, fetchProfile } = useAuthStore()
   const { members, currentArc } = usePartyStore()
- 
+
   const [taskStats, setTaskStats]         = useState<TaskTypeStat[]>([])
   const [totalCompletions, setTotal]      = useState(0)
   const [arcsCompleted, setArcsCompleted] = useState(0)
@@ -24,24 +24,24 @@ export function ProfilePage() {
   const [takenCharIds, setTakenCharIds]   = useState<string[]>([])
   const [showCharPicker, setShowPicker]   = useState(false)
   const [switchingChar, setSwitching]     = useState(false)
- 
+
   const currentArcNumber = currentArc?.arc_number ?? 1
- 
+
   // 2c enforcement: can only switch if claimed on a PREVIOUS arc
   // i.e. character_claimed_arc < currentArcNumber
   const canSwitch = (profile?.character_claimed_arc ?? 1) < currentArcNumber
   const arcsTillSwitch = canSwitch ? 0 : 1  // always 1 arc away if blocked
- 
+
   useEffect(() => {
     if (!profile?.id) return
     fetchStats()
   }, [profile?.id])
- 
+
   async function fetchStats() {
     if (!profile?.id) return
     const { data: completionData } = await supabase
       .from('completions').select('task_id, tasks(task_type)').eq('user_id', profile.id)
- 
+
     if (completionData) {
       setTotal(completionData.length)
       const counts: Record<string, number> = {}
@@ -53,7 +53,7 @@ export function ProfilePage() {
         type: t.key, count: counts[t.key] ?? 0, emoji: t.emoji, label: t.label,
       })))
     }
- 
+
     if (profile.party_id) {
       const { count } = await supabase
         .from('arc_progress').select('id', { count: 'exact' })
@@ -61,14 +61,14 @@ export function ProfilePage() {
       setArcsCompleted(count ?? 0)
     }
   }
- 
+
   async function openCharPicker() {
     if (!profile?.party_id) return
     // Load available characters up to current arc
     const { data } = await supabase
       .from('characters').select('*').lte('unlock_arc', currentArcNumber).order('sort_order')
     if (data) setCharacters(data as Character[])
- 
+
     // Which are taken by other members
     const taken = members
       .filter(m => m.id !== profile.id && m.character_id)
@@ -76,7 +76,7 @@ export function ProfilePage() {
     setTakenCharIds(taken)
     setShowPicker(true)
   }
- 
+
   async function handleSwitchCharacter(charId: string) {
     if (!profile || charId === profile.character_id) return
     setSwitching(true)
@@ -88,22 +88,22 @@ export function ProfilePage() {
     setSwitching(false)
     setShowPicker(false)
   }
- 
+
   async function handleSignOut() {
     await signOut()
     navigate('/login')
   }
- 
+
   if (!profile) return null
- 
+
   const topTaskType = taskStats.reduce(
     (top, s) => s.count > (top?.count ?? -1) ? s : top, null as TaskTypeStat | null
   )
   const myCharacter = characters.find(c => c.id === profile.character_id)
- 
+
   return (
     <div className="px-4 py-5 flex flex-col gap-5">
- 
+
       {/* Profile header */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card-parchment p-5 text-center">
         <div className="text-5xl mb-2">{myCharacter?.avatar_emoji ?? '🏴‍☠️'}</div>
@@ -121,7 +121,7 @@ export function ProfilePage() {
         {profile.longest_streak > 0 && (
           <div className="font-body text-xs text-ink-400 italic mt-1">Best: {profile.longest_streak} days</div>
         )}
- 
+
         {/* Switch character button with enforcement */}
         {canSwitch ? (
           <button
@@ -147,7 +147,7 @@ export function ProfilePage() {
           </div>
         )}
       </motion.div>
- 
+
       {/* Core stats */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
         <div className="grid grid-cols-2 gap-2">
@@ -157,7 +157,7 @@ export function ProfilePage() {
           <StatBadge icon="📜" label="Completions" value={totalCompletions} />
         </div>
       </motion.div>
- 
+
       {/* Task type breakdown */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
         <Card>
@@ -181,7 +181,7 @@ export function ProfilePage() {
           )}
         </Card>
       </motion.div>
- 
+
       {/* Journey progress */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}>
         <Card>
@@ -196,15 +196,15 @@ export function ProfilePage() {
               <div className="font-heading text-[10px] uppercase tracking-wide text-ink-400">Best Streak</div>
             </div>
           </div>
-          <ProgressBar value={arcsCompleted} max={17} label="Journey to Laugh Tale" showPct color="gold" />
+          <ProgressBar value={arcsCompleted} max={17} label="Journey to the Final Island" showPct color="gold" />
         </Card>
       </motion.div>
- 
+
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
         <Button variant="ghost" onClick={handleSignOut} className="w-full text-ink-400">Sign Out</Button>
       </motion.div>
       <div className="h-4" />
- 
+
       {/* ---- Character picker modal ---- */}
       <AnimatePresence>
         {showCharPicker && (
@@ -223,7 +223,7 @@ export function ProfilePage() {
                 <h3 className="font-display text-base text-ink-900">Choose Your Role</h3>
                 <button onClick={() => setShowPicker(false)} className="text-ink-400 hover:text-ink-700 text-xl">×</button>
               </div>
- 
+
               {!canSwitch ? (
                 <div className="bg-parchment-200 border border-parchment-400 rounded p-3 mb-4">
                   <p className="font-heading text-xs uppercase tracking-wide text-ink-600 mb-1">🔒 Switch Locked</p>
@@ -237,7 +237,7 @@ export function ProfilePage() {
                   Arc {currentArcNumber} — {characters.length} crew members available
                 </p>
               )}
- 
+
               {switchingChar ? (
                 <div className="flex justify-center py-8"><Spinner /></div>
               ) : (
@@ -270,7 +270,7 @@ export function ProfilePage() {
                   })}
                 </div>
               )}
- 
+
               {/* Locked future characters */}
               <div className="mt-4 pt-4 border-t border-parchment-200">
                 <p className="font-heading text-[10px] uppercase tracking-wider text-ink-400 mb-2">Joins later</p>
@@ -283,14 +283,14 @@ export function ProfilePage() {
     </div>
   )
 }
- 
+
 function LockedCharacters({ currentArc }: { currentArc: number }) {
   const [locked, setLocked] = useState<Character[]>([])
   useEffect(() => {
     supabase.from('characters').select('*').gt('unlock_arc', currentArc).order('sort_order')
       .then(({ data }) => { if (data) setLocked(data as Character[]) })
   }, [currentArc])
- 
+
   if (locked.length === 0) return null
   return (
     <div className="flex gap-2 flex-wrap">

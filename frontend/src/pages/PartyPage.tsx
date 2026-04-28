@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '@/store/authStore'
 import { usePartyStore } from '@/store/partyStore'
-import { Card, StatBadge, ProgressBar, Divider } from '@/components/ui'
+import { Card, StatBadge, ProgressBar, MemberCardSkeleton } from '@/components/ui'
 import { weeklyBudget } from '@/lib/xp'
 
 export function PartyPage() {
@@ -80,7 +80,9 @@ export function PartyPage() {
       <div>
         <div className="section-header text-xs mb-3">Roster</div>
         <div className="flex flex-col gap-3">
-          {members.map((member, i) => {
+          {members.length === 0
+            ? [...Array(2)].map((_, i) => <MemberCardSkeleton key={i} />)
+            : members.map((member, i) => {
             const mxp = weeklyXp.find(w => w.user_id === member.id)
             const isMe = member.id === profile?.id
             const pct = Math.min(100, Math.round(((mxp?.xp_used ?? 0) / budget) * 100))
@@ -116,7 +118,9 @@ export function PartyPage() {
                         {member.character_name ?? 'No character'} · {member.character_role ?? '—'}
                       </div>
                       {member.bonus_type && (
-                        <div className="font-body text-[11px] text-sea-700 mt-0.5">{member.class_bonus}</div>
+                        <div className="font-body text-[11px] text-sea-700 mt-0.5">
+                          +{member.bonus_pct}% on {member.bonus_type} tasks
+                        </div>
                       )}
                     </div>
                   </div>

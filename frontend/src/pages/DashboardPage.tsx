@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { usePartyStore } from '@/store/partyStore'
 import { useTasksStore } from '@/store/tasksStore'
-import { ProgressBar, StatBadge, Card, Spinner } from '@/components/ui'
+import { ProgressBar, StatBadge, Card, MemberCardSkeleton, ArcBannerSkeleton } from '@/components/ui'
+import { MapCanvas } from '@/components/map/MapCanvas'
 import { weeklyBudget } from '@/lib/xp'
 import type { ArcEvent } from '@/store/partyStore'
- 
+
 export function DashboardPage() {
   const { profile } = useAuthStore()
   const {
@@ -15,10 +17,12 @@ export function DashboardPage() {
     subscribeToParty, unsubscribeFromParty,
   } = usePartyStore()
   const { lastArcEvent, lastSecondWindMessage, clearArcEvent, clearSecondWindMessage } = useTasksStore()
- 
-  const [toastEvent, setToastEvent] = useState<ArcEvent | null>(null)
-  const [windToast, setWindToast] = useState<string | null>(null)
- 
+
+  const [toastEvent, setToastEvent]             = useState<ArcEvent | null>(null)
+  const [windToast, setWindToast]               = useState<string | null>(null)
+  const [completedArcNums, setCompletedArcNums] = useState<number[]>([])
+  const [hiddenArcNums, setHiddenArcNums]       = useState<number[]>([])
+
   useEffect(() => {
     if (!profile?.party_id) return
     const pid = profile.party_id
@@ -26,10 +30,32 @@ export function DashboardPage() {
     fetchMembers(pid)
     fetchArcData(pid)
     fetchWeeklyXp(pid)
-    subscribeToParty(pid)   // 2b: start realtime
+    subscribeToParty(pid)
+    fetchMapData(pid)
     return () => unsubscribeFromParty()
   }, [profile?.party_id])
- 
+
+  async function fetchMapData(partyId: string) {
+    // Completed arc numbers for this party
+    const { data: completed } = await supabase
+      .from('arc_progress')
+      .select('arc_id, arcs(arc_number)')
+      .eq('party_id', partyId)
+      .eq('status', 'completed')
+    if (completed) {
+      setCompletedArcNums(completed.map((r: any) => r.arcs?.arc_number).filter(Boolean))
+    }
+
+    // Hidden arc numbers
+    const { data: hidden } = await supabase
+      .from('arcs')
+      .select('arc_number')
+      .eq('hidden', true)
+    if (hidden) {
+      setHiddenArcNums(hidden.map((r: any) => r.arc_number))
+    }
+  }
+
   // Show arc event toast
   useEffect(() => {
     if (!lastArcEvent) return
@@ -38,7 +64,7 @@ export function DashboardPage() {
     const t = setTimeout(() => setToastEvent(null), 6000)
     return () => clearTimeout(t)
   }, [lastArcEvent])
- 
+
   // Show second wind toast
   useEffect(() => {
     if (!lastSecondWindMessage) return
@@ -47,15 +73,18 @@ export function DashboardPage() {
     const t = setTimeout(() => setWindToast(null), 5000)
     return () => clearTimeout(t)
   }, [lastSecondWindMessage])
- 
+
   if (!profile?.party_id) return <NoParty />
- 
+
+  // Show skeletons while party data loads
+  const partyLoading = !currentArc && !arcProgress && members.length === 0
+
   const budget = weeklyBudget(members.length)
   const myWeeklyXp = weeklyXp.find(w => w.user_id === profile.id)
   const arcPct = currentArc && arcProgress
     ? Math.min(100, Math.round((arcProgress.progress_xp / currentArc.xp_required) * 100))
     : 0
- 
+
   // Stat gate check — are we full but blocked by stats?
   const arcFull = arcProgress && currentArc
     ? arcProgress.progress_xp >= currentArc.xp_required
@@ -65,127 +94,83 @@ export function DashboardPage() {
   const powerNeeded  = currentArc ? Math.max(0, currentArc.power_required  - avgPower)  : 0
   const bountyNeeded = currentArc ? Math.max(0, currentArc.bounty_required - avgBounty) : 0
   const statGateBlocking = arcFull && arcProgress?.status === 'active' && (powerNeeded > 0 || bountyNeeded > 0)
- 
+
   // Boss fight data
   const isBossActive = arcProgress?.status === 'boss_active'
   const bossHpMax = currentArc ? currentArc.boss_hp_base * Math.max(members.length, 1) : 0
   const bossHpCurrent = arcProgress?.boss_current_hp ?? 0
   const bossHpPct = bossHpMax > 0 ? Math.round((bossHpCurrent / bossHpMax) * 100) : 0
- 
+
   return (
     <div className="flex flex-col gap-0">
- 
-      {/* ---- Arc Banner ---- */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="bg-gradient-to-b from-sea-900 to-sea-800 px-4 pt-5 pb-6 text-white relative overflow-hidden"
-      >
-        <div className="absolute bottom-0 left-0 right-0 h-6 opacity-20"
-          style={{ background: 'repeating-linear-gradient(90deg, transparent, transparent 20px, rgba(255,255,255,0.3) 20px, rgba(255,255,255,0.3) 21px)' }} />
- 
-        <div className="relative z-10">
-          <p className="font-heading text-[10px] uppercase tracking-[0.3em] text-sea-300 mb-1">Current Arc</p>
-          <h2 className="font-display text-xl leading-tight mb-0.5">
-            {currentArc?.name ?? '—'}
-          </h2>
-          <p className="font-body text-sm text-sea-200 italic">{currentArc?.location ?? ''}</p>
- 
-          {/* Arc progress bar */}
-          {!isBossActive && (
-            <div className="mt-4 flex items-center gap-3">
-              <span className="text-2xl">🚢</span>
-              <div className="flex-1">
-                <div className="flex justify-between text-xs font-heading text-sea-200 mb-1">
-                  <span>Arc Progress</span>
-                  <span>{arcPct}%</span>
-                </div>
-                <div className="h-2.5 bg-sea-700 rounded-sm overflow-hidden border border-sea-600">
-                  <motion.div
-                    className="h-full bg-gradient-to-r from-parchment-300 to-parchment-400"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${arcPct}%` }}
-                    transition={{ duration: 1, ease: 'easeOut' }}
-                  />
-                </div>
+
+      {/* ---- Map (replaces arc banner) ---- */}
+      {partyLoading ? (
+        <ArcBannerSkeleton />
+      ) : (
+        <div className="relative">
+          <MapCanvas
+            currentArc={currentArc}
+            arcProgress={arcProgress}
+            members={members}
+            completedArcNumbers={completedArcNums}
+            hiddenArcNumbers={hiddenArcNums}
+          />
+
+          {/* Arc info overlay — bottom of map */}
+          <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 pt-6
+                          bg-gradient-to-t from-sea-950/80 to-transparent pointer-events-none">
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="font-heading text-[10px] uppercase tracking-widest text-sea-300">
+                  {isBossActive ? '⚔️ Boss Fight' : 'Current Arc'}
+                </p>
+                <p className="font-display text-base text-white leading-tight">
+                  {isBossActive ? currentArc?.boss_name : currentArc?.name ?? '—'}
+                </p>
               </div>
+              {!isBossActive && (
+                <div className="text-right">
+                  <p className="font-mono text-lg font-bold text-parchment-300">{arcPct}%</p>
+                  <p className="font-heading text-[9px] uppercase tracking-wide text-sea-400">arc progress</p>
+                </div>
+              )}
+              {isBossActive && (
+                <div className="text-right">
+                  <p className="font-mono text-lg font-bold text-wanted-400">{bossHpPct}%</p>
+                  <p className="font-heading text-[9px] uppercase tracking-wide text-wanted-500">hp remaining</p>
+                </div>
+              )}
+            </div>
+
+            {/* Stat gate warning */}
+            {statGateBlocking && (
+              <div className="mt-2 bg-parchment-800/30 border border-parchment-400/30 rounded px-3 py-1.5">
+                <p className="font-heading text-[10px] text-parchment-200 uppercase tracking-wide">
+                  ⚠️ Stats needed to proceed —
+                  {powerNeeded > 0 && ` ⚡ +${Math.ceil(powerNeeded)} Power`}
+                  {bountyNeeded > 0 && ` 💰 +${Math.ceil(bountyNeeded)} Bounty`}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Boss HP bar across bottom when boss active */}
+          {isBossActive && (
+            <div className="h-2 bg-sea-950 w-full">
+              <motion.div
+                className="h-full bg-gradient-to-r from-wanted-700 to-wanted-400"
+                initial={{ width: `${bossHpPct}%` }}
+                animate={{ width: `${bossHpPct}%` }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+              />
             </div>
           )}
- 
-          {/* Stat gate warning */}
-          <AnimatePresence>
-            {statGateBlocking && (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                className="mt-3 bg-parchment-800/30 border border-parchment-400/40 rounded px-3 py-2"
-              >
-                <p className="font-heading text-xs text-parchment-200 uppercase tracking-wide mb-1">
-                  ⚠️ Arc Complete — Stats Required to Proceed
-                </p>
-                <div className="flex gap-4">
-                  {powerNeeded > 0 && (
-                    <p className="font-body text-xs text-parchment-300">
-                      ⚡ Need +{Math.ceil(powerNeeded)} avg Power
-                    </p>
-                  )}
-                  {bountyNeeded > 0 && (
-                    <p className="font-body text-xs text-parchment-300">
-                      💰 Need +{Math.ceil(bountyNeeded)} avg Bounty
-                    </p>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
- 
-          {/* Boss fight UI (2d) */}
-          <AnimatePresence>
-            {isBossActive && currentArc?.boss_name && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="mt-4"
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">⚔️</span>
-                    <div>
-                      <p className="font-heading text-[10px] uppercase tracking-wide text-wanted-300">Boss Fight</p>
-                      <p className="font-heading font-bold text-white text-sm">{currentArc.boss_name}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-mono text-lg font-bold text-white">{bossHpCurrent.toLocaleString()}</p>
-                    <p className="font-heading text-[9px] uppercase tracking-wide text-sea-300">HP remaining</p>
-                  </div>
-                </div>
- 
-                {/* Boss HP bar */}
-                <div className="h-4 bg-sea-900 rounded border border-wanted-600 overflow-hidden relative">
-                  <motion.div
-                    className="h-full bg-gradient-to-r from-wanted-600 to-wanted-400"
-                    initial={{ width: `${bossHpPct}%` }}
-                    animate={{ width: `${bossHpPct}%` }}
-                    transition={{ duration: 0.5, ease: 'easeOut' }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="font-heading text-[10px] uppercase tracking-wider text-white drop-shadow">
-                      {bossHpPct}% HP
-                    </span>
-                  </div>
-                </div>
- 
-                <p className="font-body text-xs text-sea-300 italic mt-1.5">
-                  Complete tasks daily to deal damage. Missing a day lets the boss recover!
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
-      </motion.div>
- 
+      )}
+
       <div className="px-4 py-5 flex flex-col gap-5">
- 
+
         {/* Your stats */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <div className="section-header text-xs mb-3">Your Log</div>
@@ -196,7 +181,7 @@ export function DashboardPage() {
             <StatBadge icon="⭐" label="Total XP" value={profile.total_xp.toLocaleString()} />
           </div>
         </motion.div>
- 
+
         {/* Weekly budget */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
           <Card>
@@ -212,12 +197,14 @@ export function DashboardPage() {
             )}
           </Card>
         </motion.div>
- 
+
         {/* Crew this week */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <div className="section-header text-xs mb-3">Crew — This Week</div>
           <div className="flex flex-col gap-2">
-            {members.map(member => {
+            {partyLoading
+              ? [...Array(2)].map((_, i) => <MemberCardSkeleton key={i} />)
+              : members.map(member => {
               const mxp = weeklyXp.find(w => w.user_id === member.id)
               const pct = Math.min(100, Math.round(((mxp?.xp_used ?? 0) / budget) * 100))
               const isMe = member.id === profile.id
@@ -251,7 +238,7 @@ export function DashboardPage() {
             })}
           </div>
         </motion.div>
- 
+
         {/* Party invite card */}
         {party && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
@@ -269,14 +256,14 @@ export function DashboardPage() {
             </Card>
           </motion.div>
         )}
- 
+
       </div>
- 
+
       {/* ---- Arc Event Toast ---- */}
       <AnimatePresence>
         {toastEvent && <ArcEventToast event={toastEvent} onDismiss={() => setToastEvent(null)} />}
       </AnimatePresence>
- 
+
       {/* ---- Second Wind Toast ---- */}
       <AnimatePresence>
         {windToast && (
@@ -298,7 +285,7 @@ export function DashboardPage() {
     </div>
   )
 }
- 
+
 // ---- Arc Event Toast ----
 function ArcEventToast({ event, onDismiss }: { event: ArcEvent; onDismiss: () => void }) {
   const config = {
@@ -307,13 +294,13 @@ function ArcEventToast({ event, onDismiss }: { event: ArcEvent; onDismiss: () =>
     arc_complete:    { bg: 'bg-sea-800',     icon: '⚓',  title: 'Arc Complete!',         color: 'text-sea-200'   },
     journey_complete:{ bg: 'bg-parchment-800',icon: '🏴‍☠️', title: 'The Dream Achieved!', color: 'text-parchment-200' },
   }[event.type]
- 
+
   const body =
     event.type === 'boss_unlocked'   ? `${event.bossName} awaits. Complete tasks daily to fight!` :
     event.type === 'arc_complete'    ? `Setting sail for ${event.nextArcName}!` :
-    event.type === 'journey_complete'? 'You have reached Laugh Tale. The crew made it.' :
+    event.type === 'journey_complete'? 'The crew reached the Final Island. The dream is real.' :
     ''
- 
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
@@ -332,7 +319,7 @@ function ArcEventToast({ event, onDismiss }: { event: ArcEvent; onDismiss: () =>
     </motion.div>
   )
 }
- 
+
 function NoParty() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center gap-4">
@@ -341,6 +328,113 @@ function NoParty() {
       <p className="font-body text-ink-500 text-sm max-w-xs">
         You haven't joined a crew. Head to onboarding to create or join a party.
       </p>
+    </div>
+  )
+}
+
+// ---- Boss image resolver ----
+// Maps boss_name (from DB) to the image file in /public/bosses/
+const BOSS_IMAGES: Record<string, string> = {
+  'Captain Morgan': '/bosses/morgan.webp',
+  'Buggy':          '/bosses/buggy.png',
+  'Captain Kuro':   '/bosses/kuro.png',
+  'Don Krieg':      '/bosses/krieg.webp',
+  'Arlong':         '/bosses/arlong.png',
+  'Wapol':          '/bosses/wapol.png',
+  'Crocodile':      '/bosses/crocodile.png',
+  'Enel':           '/bosses/enel.png',
+  'Rob Lucci':      '/bosses/lucci.png',
+  'Gecko Moria':    '/bosses/moria.png',
+  'Admiral Akainu': '/bosses/akainu.png',
+  'Hody Jones':     '/bosses/hody_jones.png',
+  'Donquixote Doflamingo': '/bosses/doflamingo.png',
+  // big_mom and kaido images not yet available — fallback shown
+}
+
+function BossBattleCard({
+  bossName,
+  bossHpCurrent,
+  bossHpPct,
+}: {
+  bossName: string
+  bossHpCurrent: number
+  bossHpPct: number
+}) {
+  const imgSrc = BOSS_IMAGES[bossName] ?? null
+
+  return (
+    <div className="rounded-lg overflow-hidden border border-wanted-700 shadow-parchment-lg">
+      {/* Boss image area */}
+      <div className="relative h-44 bg-sea-950 flex items-center justify-center">
+        {imgSrc ? (
+          <>
+            <img
+              src={imgSrc}
+              alt={bossName}
+              className="h-full w-full object-cover object-top opacity-90"
+              style={{ filter: 'contrast(1.05) brightness(0.92)' }}
+            />
+            {/* Dark gradient overlay so text is readable */}
+            <div className="absolute inset-0 bg-gradient-to-t from-sea-950 via-sea-950/30 to-transparent" />
+          </>
+        ) : (
+          /* Fallback when image not yet available */
+          <div className="flex flex-col items-center gap-2 opacity-40">
+            <span className="text-5xl">⚔️</span>
+            <p className="font-heading text-xs uppercase tracking-wider text-sea-300">
+              Image coming soon
+            </p>
+          </div>
+        )}
+
+        {/* Boss name overlay */}
+        <div className="absolute bottom-0 left-0 right-0 px-3 pb-2">
+          <p className="font-heading text-[10px] uppercase tracking-widest text-wanted-300 mb-0.5">
+            ⚔️ Boss Fight
+          </p>
+          <p className="font-display text-lg text-white leading-tight drop-shadow-lg">
+            {bossName}
+          </p>
+        </div>
+
+        {/* HP counter top-right */}
+        <div className="absolute top-2 right-3 text-right">
+          <p className="font-mono text-2xl font-bold text-white drop-shadow-lg leading-none">
+            {bossHpCurrent.toLocaleString()}
+          </p>
+          <p className="font-heading text-[9px] uppercase tracking-wide text-wanted-300">
+            HP remaining
+          </p>
+        </div>
+      </div>
+
+      {/* HP bar */}
+      <div className="bg-sea-950 px-3 pb-3 pt-2">
+        <div className="h-4 bg-sea-900 rounded border border-wanted-800 overflow-hidden relative">
+          <motion.div
+            className="h-full bg-gradient-to-r from-wanted-700 to-wanted-400"
+            initial={{ width: `${bossHpPct}%` }}
+            animate={{ width: `${bossHpPct}%` }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+          />
+          {/* Segmented tick marks every 25% */}
+          {[25, 50, 75].map(tick => (
+            <div
+              key={tick}
+              className="absolute top-0 bottom-0 w-px bg-sea-800"
+              style={{ left: `${tick}%` }}
+            />
+          ))}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="font-heading text-[10px] uppercase tracking-wider text-white drop-shadow">
+              {bossHpPct}% HP
+            </span>
+          </div>
+        </div>
+        <p className="font-body text-xs text-sea-400 italic mt-1.5">
+          Complete tasks daily to deal damage. Missing a day lets the boss recover.
+        </p>
+      </div>
     </div>
   )
 }

@@ -207,6 +207,73 @@ export function Divider({ label }: { label?: string }) {
   )
 }
 
+// ---- Skeleton ----
+interface SkeletonProps {
+  className?: string
+}
+
+export function Skeleton({ className }: SkeletonProps) {
+  return (
+    <div className={clsx(
+      'bg-gradient-to-r from-parchment-200 via-parchment-100 to-parchment-200',
+      'bg-[length:200%_100%] animate-shimmer rounded',
+      className
+    )} />
+  )
+}
+
+// ---- TaskCard skeleton ----
+export function TaskCardSkeleton() {
+  return (
+    <div className="card-parchment p-3">
+      <div className="flex items-start gap-3">
+        <Skeleton className="w-6 h-6 rounded shrink-0 mt-0.5" />
+        <div className="flex-1 flex flex-col gap-2">
+          <Skeleton className="h-4 w-3/4" />
+          <div className="flex gap-2">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-3 w-16" />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---- Member card skeleton ----
+export function MemberCardSkeleton() {
+  return (
+    <div className="card-parchment p-3">
+      <div className="flex items-center gap-3">
+        <Skeleton className="w-9 h-9 rounded shrink-0" />
+        <div className="flex-1 flex flex-col gap-2">
+          <Skeleton className="h-4 w-1/3" />
+          <Skeleton className="h-3 w-1/2" />
+          <Skeleton className="h-2 w-full mt-1" />
+        </div>
+        <Skeleton className="w-8 h-8 shrink-0" />
+      </div>
+    </div>
+  )
+}
+
+// ---- Arc banner skeleton ----
+export function ArcBannerSkeleton() {
+  return (
+    <div className="bg-sea-900 px-4 pt-5 pb-6">
+      <Skeleton className="h-3 w-24 mb-2 bg-sea-700" />
+      <Skeleton className="h-6 w-40 mb-1 bg-sea-700" />
+      <Skeleton className="h-4 w-32 bg-sea-800" />
+      <div className="mt-4 flex items-center gap-3">
+        <Skeleton className="w-8 h-8 rounded-full bg-sea-700" />
+        <div className="flex-1">
+          <Skeleton className="h-2.5 w-full bg-sea-700" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---- Loading spinner ----
 export function Spinner({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
   return (

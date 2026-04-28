@@ -5,7 +5,7 @@ import { usePartyStore } from '@/store/partyStore'
 import { useTasksStore } from '@/store/tasksStore'
 import { TaskCard } from '@/components/tasks/TaskCard'
 import { TaskForm } from '@/components/tasks/TaskForm'
-import { Button, Spinner, Divider } from '@/components/ui'
+import { Button, TaskCardSkeleton } from '@/components/ui'
 import type { Task, TaskFormData } from '@/types'
 
 type Modal = { mode: 'create' } | { mode: 'edit'; task: Task } | null
@@ -56,12 +56,12 @@ export function TasksPage() {
   }
 
   async function handleComplete(task: Task) {
-    if (!profile?.party_id) return
+    if (!profile?.party_id) return null
 
     const myWeeklyXp = weeklyXp.find(w => w.user_id === profile.id)
     const memberWithChar = members.find(m => m.id === profile.id)
 
-    await completeTask({
+    const result = await completeTask({
       task,
       userId: profile.id,
       partyId: profile.party_id,
@@ -76,6 +76,7 @@ export function TasksPage() {
 
     // Refresh profile to get updated stats
     await fetchProfile(profile.id)
+    return result
   }
 
   async function handleDelete(taskId: string) {
@@ -118,8 +119,8 @@ export function TasksPage() {
 
       {/* Task list */}
       {loading ? (
-        <div className="flex justify-center py-12">
-          <Spinner />
+        <div className="flex flex-col gap-2">
+          {[...Array(4)].map((_, i) => <TaskCardSkeleton key={i} />)}
         </div>
       ) : filtered.length === 0 && tasks.length === 0 ? (
         <div className="text-center py-12">
