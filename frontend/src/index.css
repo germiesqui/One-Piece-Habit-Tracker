@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ 
+@layer base {
+  :root {
+    --parchment-bg: #f9f1dc;
+    --parchment-dark: #f2e0b0;
+    --ink: #2a2820;
+    --ink-light: #5a5748;
+    --sea: #1e919e;
+    --wanted: #e33a12;
+    --gold: #c9952e;
+  }
+ 
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+ 
+  html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+  }
+ 
+  body {
+    @apply font-body text-ink-900 bg-parchment-100;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+    min-height: 100dvh;
+  }
+ 
+  h1, h2, h3, h4 {
+    @apply font-heading;
+  }
+ 
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-parchment-200;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-ink-300 rounded-full;
+  }
+}
+ 
+@layer components {
+  /* Parchment card */
+  .card-parchment {
+    @apply bg-parchment-50 border border-parchment-300 shadow-parchment rounded;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  }
+ 
+  /* Ornate border */
+  .border-ornate {
+    border-image: repeating-linear-gradient(
+      90deg,
+      theme('colors.parchment.400') 0px,
+      theme('colors.parchment.600') 4px,
+      theme('colors.parchment.400') 8px
+    ) 1;
+  }
+ 
+  /* Wanted poster style */
+  .wanted-stamp {
+    @apply font-heading font-bold uppercase tracking-widest text-wanted-700;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.15);
+  }
+ 
+  /* Navigation item */
+  .nav-item {
+    @apply flex flex-col items-center gap-0.5 px-3 py-2 text-ink-500
+           transition-colors duration-150 rounded;
+  }
+  .nav-item.active {
+    @apply text-sea-700;
+  }
+  .nav-item:hover {
+    @apply text-ink-800 bg-parchment-200;
+  }
+ 
+  /* Progress bar */
+  .progress-bar {
+    @apply h-3 bg-parchment-300 rounded-sm overflow-hidden border border-parchment-400 shadow-inset-parchment;
+  }
+  .progress-fill {
+    @apply h-full bg-gradient-to-r from-sea-500 to-sea-400 transition-all duration-700 ease-out;
+  }
+ 
+  /* Task type badge */
+  .task-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-heading font-medium uppercase tracking-wide;
+  }
+ 
+  /* Difficulty pip */
+  .diff-pip {
+    @apply w-2 h-2 rounded-full border border-parchment-400;
+  }
+  .diff-pip.filled {
+    @apply bg-parchment-500 border-parchment-600;
+  }
+ 
+  /* Section header with ornamental rule */
+  .section-header {
+    @apply flex items-center gap-3 font-heading text-sm uppercase tracking-widest text-ink-500;
+  }
+  .section-header::before,
+  .section-header::after {
+    content: '';
+    @apply flex-1 h-px bg-parchment-300;
+  }
+}
+ 
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+ 
+  /* Aged paper vignette */
+  .vignette {
+    box-shadow: inset 0 0 80px rgba(42, 40, 32, 0.08);
+  }
+}
+ 
