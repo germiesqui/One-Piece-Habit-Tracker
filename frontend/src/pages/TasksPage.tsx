@@ -13,7 +13,7 @@ type Modal = { mode: 'create' } | { mode: 'edit'; task: Task } | null
 export function TasksPage() {
   const { profile, fetchProfile } = useAuthStore()
   const { members, weeklyXp } = usePartyStore()
-  const { tasks, completions, loading, fetchTasks, fetchTodayCompletions, createTask, updateTask, deleteTask, completeTask } = useTasksStore()
+  const { tasks, completions, loading, error, fetchTasks, fetchTodayCompletions, createTask, updateTask, deleteTask, completeTask } = useTasksStore()
 
   const [modal, setModal] = useState<Modal>(null)
   const [saving, setSaving] = useState(false)
@@ -122,12 +122,13 @@ export function TasksPage() {
         <div className="flex flex-col gap-2">
           {[...Array(4)].map((_, i) => <TaskCardSkeleton key={i} />)}
         </div>
-      ) : filtered.length === 0 && tasks.length === 0 ? (
+      ) : error ? (
         <div className="text-center py-12">
-          <div className="text-4xl mb-3">📜</div>
-          <p className="font-heading text-sm uppercase tracking-wide text-ink-400 mb-4">
-            No missions yet — add one!
+          <div className="text-4xl mb-3">⚠️</div>
+          <p className="font-heading text-sm uppercase tracking-wide text-ink-400 mb-1">
+            Failed to load missions
           </p>
+          <p className="font-body text-xs text-ink-400 italic mb-4">{error}</p>
           <button
             onClick={() => profile && fetchTasks(profile.id)}
             className="font-heading text-xs uppercase tracking-wider text-sea-600 hover:text-sea-800
@@ -135,6 +136,13 @@ export function TasksPage() {
           >
             ↻ Retry
           </button>
+        </div>
+      ) : filtered.length === 0 && tasks.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="text-4xl mb-3">📜</div>
+          <p className="font-heading text-sm uppercase tracking-wide text-ink-400">
+            No missions yet — add one!
+          </p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-12">

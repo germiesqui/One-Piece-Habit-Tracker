@@ -5,7 +5,8 @@ import { useAuthStore } from '@/store/authStore'
 import { usePartyStore } from '@/store/partyStore'
 import { useTasksStore } from '@/store/tasksStore'
 import { ProgressBar, StatBadge, Card, MemberCardSkeleton, ArcBannerSkeleton } from '@/components/ui'
-import { MapCanvas } from '@/components/map/MapCanvas'
+import { VoyageHeader } from '@/components/map/VoyageHeader'
+import { NotificationBanner } from '@/components/dashboard/NotificationBanner'
 import { weeklyBudget } from '@/lib/xp'
 import type { ArcEvent } from '@/store/partyStore'
 
@@ -104,70 +105,43 @@ export function DashboardPage() {
   return (
     <div className="flex flex-col gap-0">
 
-      {/* ---- Map (replaces arc banner) ---- */}
+      {/* ---- Voyage Header ---- */}
       {partyLoading ? (
         <ArcBannerSkeleton />
       ) : (
-        <div className="relative">
-          <MapCanvas
-            currentArc={currentArc}
-            arcProgress={arcProgress}
-            members={members}
-            completedArcNumbers={completedArcNums}
-            hiddenArcNumbers={hiddenArcNums}
-          />
-
-          {/* Arc info overlay — bottom of map */}
-          <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 pt-6
-                          bg-gradient-to-t from-sea-950/80 to-transparent pointer-events-none">
-            <div className="flex items-end justify-between">
-              <div>
-                <p className="font-heading text-[10px] uppercase tracking-widest text-sea-300">
-                  {isBossActive ? '⚔️ Boss Fight' : 'Current Arc'}
-                </p>
-                <p className="font-display text-base text-white leading-tight">
-                  {isBossActive ? currentArc?.boss_name : currentArc?.name ?? '—'}
-                </p>
-              </div>
-              {!isBossActive && (
-                <div className="text-right">
-                  <p className="font-mono text-lg font-bold text-parchment-300">{arcPct}%</p>
-                  <p className="font-heading text-[9px] uppercase tracking-wide text-sea-400">arc progress</p>
-                </div>
-              )}
-              {isBossActive && (
-                <div className="text-right">
-                  <p className="font-mono text-lg font-bold text-wanted-400">{bossHpPct}%</p>
-                  <p className="font-heading text-[9px] uppercase tracking-wide text-wanted-500">hp remaining</p>
-                </div>
-              )}
-            </div>
-
-            {/* Stat gate warning */}
-            {statGateBlocking && (
-              <div className="mt-2 bg-parchment-800/30 border border-parchment-400/30 rounded px-3 py-1.5">
-                <p className="font-heading text-[10px] text-parchment-200 uppercase tracking-wide">
-                  ⚠️ Stats needed to proceed —
-                  {powerNeeded > 0 && ` ⚡ +${Math.ceil(powerNeeded)} Power`}
-                  {bountyNeeded > 0 && ` 💰 +${Math.ceil(bountyNeeded)} Bounty`}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Boss HP bar across bottom when boss active */}
-          {isBossActive && (
-            <div className="h-2 bg-sea-950 w-full">
-              <motion.div
-                className="h-full bg-gradient-to-r from-wanted-700 to-wanted-400"
-                initial={{ width: `${bossHpPct}%` }}
-                animate={{ width: `${bossHpPct}%` }}
-                transition={{ duration: 0.6, ease: 'easeOut' }}
-              />
-            </div>
-          )}
-        </div>
+        <VoyageHeader
+          currentArc={currentArc}
+          arcProgress={arcProgress}
+          bossHpMax={bossHpMax}
+        />
       )}
+
+      {/* ---- Notification banner ---- */}
+      {profile?.id && (
+        <NotificationBanner userId={profile.id} partyId={profile.party_id} />
+      )}
+
+      {/* ---- Stat gate warning ---- */}
+      <AnimatePresence>
+        {statGateBlocking && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="mx-4 mt-3 bg-parchment-200 border border-parchment-400 rounded px-3 py-2"
+          >
+            <p className="font-heading text-xs uppercase tracking-wide text-ink-700">
+              ⚠️ Arc complete — stats needed to proceed
+            </p>
+            <div className="flex gap-4 mt-1">
+              {powerNeeded > 0 && (
+                <p className="font-body text-xs text-ink-600">⚡ Need +{Math.ceil(powerNeeded)} avg Power</p>
+              )}
+              {bountyNeeded > 0 && (
+                <p className="font-body text-xs text-ink-600">💰 Need +{Math.ceil(bountyNeeded)} avg Bounty</p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="px-4 py-5 flex flex-col gap-5">
 

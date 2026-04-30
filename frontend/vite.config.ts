@@ -1,13 +1,25 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  test: {
+    globals:     true,
+    environment: 'node',
+    include:     ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+  },
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      strategies: 'injectManifest',
+      injectManifest: {
+        swSrc: 'src/sw.ts',
+        swDest: 'sw.js',
+      },
       includeAssets: ['favicon.svg', 'map.jpg', 'icons/*.png', 'bosses/*.png', 'ships/*.png'],
       manifest: {
         name: 'Grand Line Chronicles',

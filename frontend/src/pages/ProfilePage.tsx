@@ -24,6 +24,8 @@ export function ProfilePage() {
   const [takenCharIds, setTakenCharIds]   = useState<string[]>([])
   const [showCharPicker, setShowPicker]   = useState(false)
   const [switchingChar, setSwitching]     = useState(false)
+  const [showLeaveWarning, setShowLeaveWarning] = useState(false)
+  const [leavingCrew, setLeavingCrew]     = useState(false)
 
   const currentArcNumber = currentArc?.arc_number ?? 1
 
@@ -92,6 +94,26 @@ export function ProfilePage() {
   async function handleSignOut() {
     await signOut()
     navigate('/login')
+  }
+
+  async function handleLeaveCrew() {
+    if (!profile) return
+    setLeavingCrew(true)
+    try {
+      await supabase.from('profiles').update({
+        party_id: null,
+        character_id: null,
+        character_claimed_arc: 1,
+        is_party_admin: false,
+      }).eq('id', profile.id)
+      await fetchProfile(profile.id)
+      navigate('/onboarding')
+    } catch (e) {
+      console.error('handleLeaveCrew error:', e)
+    } finally {
+      setLeavingCrew(false)
+      setShowLeaveWarning(false)
+    }
   }
 
   if (!profile) return null
@@ -200,10 +222,69 @@ export function ProfilePage() {
         </Card>
       </motion.div>
 
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+        className="flex flex-col gap-2">
         <Button variant="ghost" onClick={handleSignOut} className="w-full text-ink-400">Sign Out</Button>
+        {profile.party_id && (
+          <button
+            onClick={() => setShowLeaveWarning(true)}
+            className="w-full py-2 font-heading text-xs uppercase tracking-wider text-wanted-600
+                       hover:text-wanted-700 transition-colors"
+          >
+            Leave Crew
+          </button>
+        )}
       </motion.div>
       <div className="h-4" />
+
+      {/* ---- Leave crew confirmation modal ---- */}
+      <AnimatePresence>
+        {showLeaveWarning && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-ink-900/50 z-40 backdrop-blur-sm"
+              onClick={() => setShowLeaveWarning(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 40 }}
+              className="fixed inset-x-0 bottom-0 z-50 bg-parchment-50 border-t border-parchment-300
+                         rounded-t-xl p-5 pb-8 shadow-parchment-lg max-w-2xl mx-auto"
+            >
+              <div className="text-center mb-5">
+                <div className="text-4xl mb-3">⚓</div>
+                <h3 className="font-display text-lg text-ink-900 mb-2">Leave the Crew?</h3>
+                <p className="font-body text-sm text-ink-600 leading-relaxed">
+                  You'll lose access to this party's progress and won't be able to contribute to
+                  the current arc. Your personal stats and XP are kept — but your character slot
+                  will be freed for someone else.
+                </p>
+                <p className="font-body text-xs text-ink-400 italic mt-2">
+                  You can join a new crew with an invite code afterwards.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => setShowLeaveWarning(false)}
+                >
+                  Stay
+                </Button>
+                <Button
+                  variant="danger"
+                  className="flex-1"
+                  loading={leavingCrew}
+                  onClick={handleLeaveCrew}
+                >
+                  Leave Crew
+                </Button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* ---- Character picker modal ---- */}
       <AnimatePresence>

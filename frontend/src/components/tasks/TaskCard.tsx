@@ -200,9 +200,9 @@ export function TaskCard({ task, completedToday, onComplete, onEdit, onDelete }:
         {showPop && (
           <motion.div
             initial={{ opacity: 1, y: 0, x: '-50%' }}
-            animate={{ opacity: 0, y: -52, x: '-50%' }}
+            animate={{ opacity: [1, 1, 1, 0], y: -64, x: '-50%' }}
             exit={{}}
-            transition={{ duration: 1.8, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 1.5, ease: 'easeOut', times: [0, 0.4, 0.55, 1] }}
             className="absolute left-1/2 top-0 pointer-events-none z-50 flex flex-col items-center gap-0.5"
           >
             {/* Main XP number */}

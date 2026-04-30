@@ -1,145 +1,177 @@
-# Grand Line Chronicles 🏴‍☠️
+# Supabase CLI
 
-A collaborative, gamified habit tracker set in the One Piece universe.
-Built with React 19 + Vite + Tailwind CSS + Supabase.
+[![Coverage Status](https://coveralls.io/repos/github/supabase/cli/badge.svg?branch=develop)](https://coveralls.io/github/supabase/cli?branch=develop) [![Bitbucket Pipelines](https://img.shields.io/bitbucket/pipelines/supabase-cli/setup-cli/master?style=flat-square&label=Bitbucket%20Canary)](https://bitbucket.org/supabase-cli/setup-cli/pipelines) [![Gitlab Pipeline Status](https://img.shields.io/gitlab/pipeline-status/sweatybridge%2Fsetup-cli?label=Gitlab%20Canary)
+](https://gitlab.com/sweatybridge/setup-cli/-/pipelines)
 
----
+[Supabase](https://supabase.io) is an open source Firebase alternative. We're building the features of Firebase using enterprise-grade open source tools.
 
-## Prerequisites
+This repository contains all the functionality for Supabase CLI.
 
-- Node.js 20+
-- pnpm (recommended) / npm / yarn
-- A free [Supabase](https://supabase.com) account
+- [x] Running Supabase locally
+- [x] Managing database migrations
+- [x] Creating and deploying Supabase Functions
+- [x] Generating types directly from your database schema
+- [x] Making authenticated HTTP requests to [Management API](https://supabase.com/docs/reference/api/introduction)
 
----
+## Getting started
 
-## 1. Supabase Setup
+### Install the CLI
 
-### 1.1 Create a project
-1. Go to [supabase.com](https://supabase.com) and sign in
-2. Click **New project**
-3. Choose a name (e.g. `grand-line-chronicles`), set a strong database password, pick a region close to you
-4. Wait ~2 minutes for the project to provision
-
-### 1.2 Run the database schema
-1. In your Supabase dashboard, go to **SQL Editor**
-2. Click **New query**
-3. Copy the contents of `supabase/migrations/001_schema.sql` and paste it in
-4. Click **Run** — you should see "Success"
-5. Repeat with `supabase/migrations/002_seed.sql` for initial arc/character data
-
-### 1.3 Enable Row Level Security policies
-1. Still in SQL Editor, run `supabase/policies/rls.sql`
-
-### 1.4 Enable Email Auth
-1. Go to **Authentication → Providers**
-2. Ensure **Email** is enabled
-3. For development, disable "Confirm email" under **Authentication → Settings** so you can sign up instantly
-
-### 1.5 Get your API keys
-1. Go to **Project Settings → API**
-2. Copy:
-   - **Project URL** (looks like `https://xxxx.supabase.co`)
-   - **Publishable (public) key** — previously called "anon key"
-
----
-
-## 2. Frontend Setup
+Available via [NPM](https://www.npmjs.com) as dev dependency. To install:
 
 ```bash
-cd frontend
-pnpm install       # or npm install
-cp .env.example .env
+npm i supabase --save-dev
 ```
 
-Edit `.env`:
+When installing with yarn 4, you need to disable experimental fetch with the following nodejs config.
+
 ```
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+NODE_OPTIONS=--no-experimental-fetch yarn add supabase
 ```
+
+> **Note**
+For Bun versions below v1.0.17, you must add `supabase` as a [trusted dependency](https://bun.sh/guides/install/trusted) before running `bun add -D supabase`.
+
+<details>
+  <summary><b>macOS</b></summary>
+
+  Available via [Homebrew](https://brew.sh). To install:
+
+  ```sh
+  brew install supabase/tap/supabase
+  ```
+
+  To install the beta release channel:
+  
+  ```sh
+  brew install supabase/tap/supabase-beta
+  brew link --overwrite supabase-beta
+  ```
+  
+  To upgrade:
+
+  ```sh
+  brew upgrade supabase
+  ```
+</details>
+
+<details>
+  <summary><b>Windows</b></summary>
+
+  Available via [Scoop](https://scoop.sh). To install:
+
+  ```powershell
+  scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
+  scoop install supabase
+  ```
+
+  To upgrade:
+
+  ```powershell
+  scoop update supabase
+  ```
+</details>
+
+<details>
+  <summary><b>Linux</b></summary>
+
+  Available via [Homebrew](https://brew.sh) and Linux packages.
+
+  #### via Homebrew
+
+  To install:
+
+  ```sh
+  brew install supabase/tap/supabase
+  ```
+
+  To upgrade:
+
+  ```sh
+  brew upgrade supabase
+  ```
+
+  #### via Linux packages
+
+  Linux packages are provided in [Releases](https://github.com/supabase/cli/releases). To install, download the `.apk`/`.deb`/`.rpm`/`.pkg.tar.zst` file depending on your package manager and run the respective commands.
+
+  ```sh
+  sudo apk add --allow-untrusted <...>.apk
+  ```
+
+  ```sh
+  sudo dpkg -i <...>.deb
+  ```
+
+  ```sh
+  sudo rpm -i <...>.rpm
+  ```
+
+  ```sh
+  sudo pacman -U <...>.pkg.tar.zst
+  ```
+</details>
+
+<details>
+  <summary><b>Other Platforms</b></summary>
+
+  You can also install the CLI via [go modules](https://go.dev/ref/mod#go-install) without the help of package managers.
+
+  ```sh
+  go install github.com/supabase/cli@latest
+  ```
+
+  Add a symlink to the binary in `$PATH` for easier access:
+
+  ```sh
+  ln -s "$(go env GOPATH)/bin/cli" /usr/bin/supabase
+  ```
+
+  This works on other non-standard Linux distros.
+</details>
+
+<details>
+  <summary><b>Community Maintained Packages</b></summary>
+
+  Available via [pkgx](https://pkgx.sh/). Package script [here](https://github.com/pkgxdev/pantry/blob/main/projects/supabase.com/cli/package.yml).
+  To install in your working directory:
+
+  ```bash
+  pkgx install supabase
+  ```
+
+  Available via [Nixpkgs](https://nixos.org/). Package script [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/tools/supabase-cli/default.nix).
+</details>
+
+### Run the CLI
 
 ```bash
-pnpm dev           # starts on http://localhost:5173
+supabase bootstrap
 ```
 
----
+Or using npx:
 
-## 3. First Run
-
-1. Open the app and **Register** with your email
-2. **Create a party** — you'll get a 6-character invite code
-3. Share the invite code with your crew
-4. Each member registers, clicks **Join Party**, enters the code
-5. Each member picks their **crew member** character
-6. Start completing tasks — the journey begins!
-
----
-
-## 4. Deployment
-
-### Frontend (Vercel)
 ```bash
-cd frontend
-pnpm build
-# Push to GitHub, connect repo to Vercel, set env vars in Vercel dashboard
+npx supabase bootstrap
 ```
 
-### Backend
-Supabase is already hosted — nothing to deploy.
+The bootstrap command will guide you through the process of setting up a Supabase project using one of the [starter](https://github.com/supabase-community/supabase-samples/blob/main/samples.json) templates.
 
----
+## Docs
 
-## 5. Project Structure
+Command & config reference can be found [here](https://supabase.com/docs/reference/cli/about).
 
-```
-grand-line-chronicles/
-│
-├── README.md                          ← Full setup guide (start here)
-│
-├── supabase/
-│   ├── migrations/
-│   │   ├── 001_schema.sql             ← Run first: all tables + triggers
-│   │   └── 002_seed.sql               ← Run second: characters + all 18 arcs
-│   └── policies/
-│       └── rls.sql                    ← Run third: Row Level Security
-│
-└── frontend/
-    ├── .env.example                   ← Copy to .env, fill in Supabase keys
-    ├── index.html                     ← Entry HTML + Google Fonts
-    ├── package.json                   ← Dependencies
-    ├── vite.config.ts                 ← Vite + path aliases
-    ├── tailwind.config.ts             ← Full parchment theme + custom fonts
-    ├── tsconfig.json                  ← TypeScript config (baseUrl removed ✓)
-    ├── tsconfig.node.json             ← Vite-specific TS config
-    ├── postcss.config.js              ← PostCSS for Tailwind
-    └── src/
-        ├── main.tsx                   ← React entry point
-        ├── App.tsx                    ← Router + auth guard
-        ├── index.css                  ← Global styles + parchment texture
-        │
-        ├── types/index.ts             ← All TypeScript types + constants
-        │
-        ├── lib/
-        │   ├── supabase.ts            ← Supabase client (publishable key ✓)
-        │   └── xp.ts                  ← XP math, caps, Second Wind, streaks
-        │
-        ├── store/
-        │   ├── authStore.ts           ← Session, profile, auth state
-        │   ├── partyStore.ts          ← Party, members, arc progress
-        │   └── tasksStore.ts          ← Tasks CRUD + complete logic
-        │
-        ├── components/
-        │   ├── ui/index.tsx           ← Button, Card, Input, ProgressBar, etc.
-        │   ├── layout/AppShell.tsx    ← App wrapper + bottom nav
-        │   └── tasks/
-        │       ├── TaskCard.tsx       ← Individual task with complete/edit/delete
-        │       └── TaskForm.tsx       ← Create/edit form with type + difficulty slider
-        │
-        └── pages/
-            ├── AuthPages.tsx          ← Login + Register (in one file)
-            ├── OnboardingPage.tsx     ← Create/join party + pick character
-            ├── DashboardPage.tsx      ← Arc progress + party weekly overview
-            ├── TasksPage.tsx          ← Mission log with filter + modal
-            ├── PartyPage.tsx          ← Full crew roster + stats
-            └── ProfilePage.tsx        ← Individual stats + sign out
+## Breaking changes
+
+We follow semantic versioning for changes that directly impact CLI commands, flags, and configurations.
+
+However, due to dependencies on other service images, we cannot guarantee that schema migrations, seed.sql, and generated types will always work for the same CLI major version. If you need such guarantees, we encourage you to pin a specific version of CLI in package.json.
+
+## Developing
+
+To run from source:
+
+```sh
+# Go >= 1.22
+go run . help
 ```

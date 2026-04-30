@@ -44,28 +44,24 @@ export const useTasksStore = create<TasksState>((set, get) => ({
   lastSecondWindMessage: null,
 
   fetchTasks: async (userId) => {
-    set({ loading: true })
-    const MAX_RETRIES = 3
-    let lastError: unknown = null
+    set({ loading: true, error: null })
+    try {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), 4000)
 
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      try {
-        if (attempt > 0) await new Promise(r => setTimeout(r, 1000 * attempt))
+      const { data, error } = await supabase
+        .from('tasks').select('*').eq('user_id', userId).eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .abortSignal(controller.signal)
 
-        const { data, error } = await supabase
-          .from('tasks').select('*').eq('user_id', userId).eq('is_active', true)
-          .order('created_at', { ascending: false })
-
-        if (error) { lastError = error; continue }
-        set({ tasks: data as Task[], loading: false })
-        return
-      } catch (e) {
-        lastError = e
-      }
+      clearTimeout(timer)
+      if (error) throw error
+      set({ tasks: data as Task[], loading: false })
+    } catch (e: any) {
+      const msg = e?.name === 'AbortError' ? 'Request timed out' : (e?.message ?? 'Failed to load')
+      console.error('fetchTasks error:', msg)
+      set({ loading: false, error: msg })
     }
-
-    console.error('fetchTasks failed after retries:', lastError)
-    set({ loading: false })
   },
 
   fetchTodayCompletions: async (userId) => {
