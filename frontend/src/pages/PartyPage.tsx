@@ -2,12 +2,12 @@ import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '@/store/authStore'
 import { usePartyStore } from '@/store/partyStore'
-import { Card, StatBadge, ProgressBar, MemberCardSkeleton } from '@/components/ui'
+import { Card, ProgressBar, MemberCardSkeleton } from '@/components/ui'
 import { weeklyBudget } from '@/lib/xp'
 
 export function PartyPage() {
   const { profile } = useAuthStore()
-  const { party, members, currentArc, arcProgress, weeklyXp, fetchParty, fetchMembers, fetchArcData, fetchWeeklyXp } = usePartyStore()
+  const { party, members, weeklyXp, fetchParty, fetchMembers, fetchArcData, fetchWeeklyXp } = usePartyStore()
 
   useEffect(() => {
     if (!profile?.party_id) return
@@ -85,7 +85,6 @@ export function PartyPage() {
             : members.map((member, i) => {
             const mxp = weeklyXp.find(w => w.user_id === member.id)
             const isMe = member.id === profile?.id
-            const pct = Math.min(100, Math.round(((mxp?.xp_used ?? 0) / budget) * 100))
 
             return (
               <motion.div

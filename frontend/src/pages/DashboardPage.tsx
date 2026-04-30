@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { usePartyStore } from '@/store/partyStore'
 import { useTasksStore } from '@/store/tasksStore'
@@ -19,10 +18,8 @@ export function DashboardPage() {
   } = usePartyStore()
   const { lastArcEvent, lastSecondWindMessage, clearArcEvent, clearSecondWindMessage } = useTasksStore()
 
-  const [toastEvent, setToastEvent]             = useState<ArcEvent | null>(null)
-  const [windToast, setWindToast]               = useState<string | null>(null)
-  const [completedArcNums, setCompletedArcNums] = useState<number[]>([])
-  const [hiddenArcNums, setHiddenArcNums]       = useState<number[]>([])
+  const [toastEvent, setToastEvent] = useState<ArcEvent | null>(null)
+  const [windToast, setWindToast]   = useState<string | null>(null)
 
   useEffect(() => {
     if (!profile?.party_id) return
@@ -32,30 +29,8 @@ export function DashboardPage() {
     fetchArcData(pid)
     fetchWeeklyXp(pid)
     subscribeToParty(pid)
-    fetchMapData(pid)
     return () => unsubscribeFromParty()
   }, [profile?.party_id])
-
-  async function fetchMapData(partyId: string) {
-    // Completed arc numbers for this party
-    const { data: completed } = await supabase
-      .from('arc_progress')
-      .select('arc_id, arcs(arc_number)')
-      .eq('party_id', partyId)
-      .eq('status', 'completed')
-    if (completed) {
-      setCompletedArcNums(completed.map((r: any) => r.arcs?.arc_number).filter(Boolean))
-    }
-
-    // Hidden arc numbers
-    const { data: hidden } = await supabase
-      .from('arcs')
-      .select('arc_number')
-      .eq('hidden', true)
-    if (hidden) {
-      setHiddenArcNums(hidden.map((r: any) => r.arc_number))
-    }
-  }
 
   // Show arc event toast
   useEffect(() => {
@@ -82,25 +57,19 @@ export function DashboardPage() {
 
   const budget = weeklyBudget(members.length)
   const myWeeklyXp = weeklyXp.find(w => w.user_id === profile.id)
-  const arcPct = currentArc && arcProgress
-    ? Math.min(100, Math.round((arcProgress.progress_xp / currentArc.xp_required) * 100))
-    : 0
 
-  // Stat gate check — are we full but blocked by stats?
+  // Stat gate check
   const arcFull = arcProgress && currentArc
     ? arcProgress.progress_xp >= currentArc.xp_required
     : false
-  const avgPower  = members.length ? members.reduce((s, m) => s + m.power,  0) / members.length : 0
-  const avgBounty = members.length ? members.reduce((s, m) => s + m.bounty, 0) / members.length : 0
+  const avgPower   = members.length ? members.reduce((s, m) => s + m.power,  0) / members.length : 0
+  const avgBounty  = members.length ? members.reduce((s, m) => s + m.bounty, 0) / members.length : 0
   const powerNeeded  = currentArc ? Math.max(0, currentArc.power_required  - avgPower)  : 0
   const bountyNeeded = currentArc ? Math.max(0, currentArc.bounty_required - avgBounty) : 0
   const statGateBlocking = arcFull && arcProgress?.status === 'active' && (powerNeeded > 0 || bountyNeeded > 0)
 
   // Boss fight data
-  const isBossActive = arcProgress?.status === 'boss_active'
   const bossHpMax = currentArc ? currentArc.boss_hp_base * Math.max(members.length, 1) : 0
-  const bossHpCurrent = arcProgress?.boss_current_hp ?? 0
-  const bossHpPct = bossHpMax > 0 ? Math.round((bossHpCurrent / bossHpMax) * 100) : 0
 
   return (
     <div className="flex flex-col gap-0">
@@ -302,113 +271,6 @@ function NoParty() {
       <p className="font-body text-ink-500 text-sm max-w-xs">
         You haven't joined a crew. Head to onboarding to create or join a party.
       </p>
-    </div>
-  )
-}
-
-// ---- Boss image resolver ----
-// Maps boss_name (from DB) to the image file in /public/bosses/
-const BOSS_IMAGES: Record<string, string> = {
-  'Captain Morgan': '/bosses/morgan.webp',
-  'Buggy':          '/bosses/buggy.png',
-  'Captain Kuro':   '/bosses/kuro.png',
-  'Don Krieg':      '/bosses/krieg.webp',
-  'Arlong':         '/bosses/arlong.png',
-  'Wapol':          '/bosses/wapol.png',
-  'Crocodile':      '/bosses/crocodile.png',
-  'Enel':           '/bosses/enel.png',
-  'Rob Lucci':      '/bosses/lucci.png',
-  'Gecko Moria':    '/bosses/moria.png',
-  'Admiral Akainu': '/bosses/akainu.png',
-  'Hody Jones':     '/bosses/hody_jones.png',
-  'Donquixote Doflamingo': '/bosses/doflamingo.png',
-  // big_mom and kaido images not yet available — fallback shown
-}
-
-function BossBattleCard({
-  bossName,
-  bossHpCurrent,
-  bossHpPct,
-}: {
-  bossName: string
-  bossHpCurrent: number
-  bossHpPct: number
-}) {
-  const imgSrc = BOSS_IMAGES[bossName] ?? null
-
-  return (
-    <div className="rounded-lg overflow-hidden border border-wanted-700 shadow-parchment-lg">
-      {/* Boss image area */}
-      <div className="relative h-44 bg-sea-950 flex items-center justify-center">
-        {imgSrc ? (
-          <>
-            <img
-              src={imgSrc}
-              alt={bossName}
-              className="h-full w-full object-cover object-top opacity-90"
-              style={{ filter: 'contrast(1.05) brightness(0.92)' }}
-            />
-            {/* Dark gradient overlay so text is readable */}
-            <div className="absolute inset-0 bg-gradient-to-t from-sea-950 via-sea-950/30 to-transparent" />
-          </>
-        ) : (
-          /* Fallback when image not yet available */
-          <div className="flex flex-col items-center gap-2 opacity-40">
-            <span className="text-5xl">⚔️</span>
-            <p className="font-heading text-xs uppercase tracking-wider text-sea-300">
-              Image coming soon
-            </p>
-          </div>
-        )}
-
-        {/* Boss name overlay */}
-        <div className="absolute bottom-0 left-0 right-0 px-3 pb-2">
-          <p className="font-heading text-[10px] uppercase tracking-widest text-wanted-300 mb-0.5">
-            ⚔️ Boss Fight
-          </p>
-          <p className="font-display text-lg text-white leading-tight drop-shadow-lg">
-            {bossName}
-          </p>
-        </div>
-
-        {/* HP counter top-right */}
-        <div className="absolute top-2 right-3 text-right">
-          <p className="font-mono text-2xl font-bold text-white drop-shadow-lg leading-none">
-            {bossHpCurrent.toLocaleString()}
-          </p>
-          <p className="font-heading text-[9px] uppercase tracking-wide text-wanted-300">
-            HP remaining
-          </p>
-        </div>
-      </div>
-
-      {/* HP bar */}
-      <div className="bg-sea-950 px-3 pb-3 pt-2">
-        <div className="h-4 bg-sea-900 rounded border border-wanted-800 overflow-hidden relative">
-          <motion.div
-            className="h-full bg-gradient-to-r from-wanted-700 to-wanted-400"
-            initial={{ width: `${bossHpPct}%` }}
-            animate={{ width: `${bossHpPct}%` }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-          />
-          {/* Segmented tick marks every 25% */}
-          {[25, 50, 75].map(tick => (
-            <div
-              key={tick}
-              className="absolute top-0 bottom-0 w-px bg-sea-800"
-              style={{ left: `${tick}%` }}
-            />
-          ))}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="font-heading text-[10px] uppercase tracking-wider text-white drop-shadow">
-              {bossHpPct}% HP
-            </span>
-          </div>
-        </div>
-        <p className="font-body text-xs text-sea-400 italic mt-1.5">
-          Complete tasks daily to deal damage. Missing a day lets the boss recover.
-        </p>
-      </div>
     </div>
   )
 }

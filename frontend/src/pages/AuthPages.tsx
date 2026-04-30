@@ -3,14 +3,14 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { signIn } from '@/lib/supabase'
 import { Button, Input } from '@/components/ui'
- 
+
 export function LoginPage() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
- 
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -20,7 +20,7 @@ export function LoginPage() {
     if (error) { setError(error.message); return }
     navigate('/dashboard')
   }
- 
+
   return (
     <div className="min-h-dvh bg-parchment-100 flex flex-col items-center justify-center px-6 py-12">
       <motion.div
@@ -38,11 +38,11 @@ export function LoginPage() {
             "I'm going to be the King of the Pirates."
           </p>
         </div>
- 
+
         {/* Card */}
         <div className="card-parchment p-6">
           <div className="section-header text-xs mb-5">Set Sail</div>
- 
+
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <Input
               label="Email"
@@ -60,19 +60,19 @@ export function LoginPage() {
               onChange={e => setPassword(e.target.value)}
               required
             />
- 
+
             {error && (
               <p className="text-xs text-wanted-600 font-body bg-wanted-50 border border-wanted-200 rounded px-3 py-2">
                 {error}
               </p>
             )}
- 
+
             <Button type="submit" size="lg" loading={loading} className="w-full mt-1">
               Board the Ship
             </Button>
           </form>
         </div>
- 
+
         <p className="text-center font-body text-sm text-ink-500 mt-4">
           New to the crew?{' '}
           <Link to="/register" className="text-sea-700 hover:text-sea-800 underline underline-offset-2">
@@ -83,10 +83,10 @@ export function LoginPage() {
     </div>
   )
 }
- 
+
 // ---- Register Page ----
 import { signUp } from '@/lib/supabase'
- 
+
 export function RegisterPage() {
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
@@ -95,21 +95,21 @@ export function RegisterPage() {
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
- 
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     if (password !== confirm) { setError('Passwords do not match.'); return }
     if (password.length < 6)  { setError('Password must be at least 6 characters.'); return }
     setLoading(true)
-    const { data, error } = await signUp(email, password, username)
+    const { error } = await signUp(email, password, username)
     if (error) { setError(error.message); setLoading(false); return }
     // Session is set automatically by onAuthStateChange — just navigate
     // The onboarding page will wait for profile to be ready
     navigate('/onboarding')
     setLoading(false)
   }
- 
+
   return (
     <div className="min-h-dvh bg-parchment-100 flex flex-col items-center justify-center px-6 py-12">
       <motion.div
@@ -125,10 +125,10 @@ export function RegisterPage() {
             Every great pirate starts somewhere.
           </p>
         </div>
- 
+
         <div className="card-parchment p-6">
           <div className="section-header text-xs mb-5">Create Account</div>
- 
+
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <Input
               label="Pirate Name"
@@ -162,19 +162,19 @@ export function RegisterPage() {
               onChange={e => setConfirm(e.target.value)}
               required
             />
- 
+
             {error && (
               <p className="text-xs text-wanted-600 font-body bg-wanted-50 border border-wanted-200 rounded px-3 py-2">
                 {error}
               </p>
             )}
- 
+
             <Button type="submit" size="lg" loading={loading} className="w-full mt-1">
               Raise the Flag
             </Button>
           </form>
         </div>
- 
+
         <p className="text-center font-body text-sm text-ink-500 mt-4">
           Already sailing?{' '}
           <Link to="/login" className="text-sea-700 hover:text-sea-800 underline underline-offset-2">

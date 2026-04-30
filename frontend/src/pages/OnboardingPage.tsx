@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { usePartyStore } from '@/store/partyStore'
-import { Button, Input, Card } from '@/components/ui'
+import { Button, Input } from '@/components/ui'
 import type { Character } from '@/types'
 
 type Step = 'party' | 'character'
@@ -12,7 +12,7 @@ type PartyMode = 'create' | 'join'
 
 export function OnboardingPage() {
   const navigate = useNavigate()
-  const { user, profile, fetchProfile } = useAuthStore()
+  const { user, fetchProfile } = useAuthStore()
   const { createParty, joinParty, loading, error } = usePartyStore()
 
   const [step, setStep] = useState<Step>('party')

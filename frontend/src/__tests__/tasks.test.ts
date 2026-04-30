@@ -3,7 +3,7 @@
 // Tests which tasks are due on which days
 // Simulates the notification edge function's pending task logic
 // ============================================================
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 
 // ---- Replicate the notification filtering logic from edge function ----
 interface Task {
