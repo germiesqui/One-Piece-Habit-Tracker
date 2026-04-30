@@ -13,13 +13,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      srcDir: 'src',
-      filename: 'sw.ts',
-      strategies: 'injectManifest',
-      injectManifest: {
-        swSrc: 'src/sw.ts',
-        swDest: 'sw.js',
-      },
+      strategies: 'generateSW',
       includeAssets: ['favicon.svg', 'map.jpg', 'icons/*.png', 'bosses/*.png', 'ships/*.png'],
       manifest: {
         name: 'Grand Line Chronicles',
@@ -61,7 +55,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Cache Google Fonts
+        importScripts: ['/sw-push.js'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
