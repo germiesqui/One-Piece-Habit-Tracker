@@ -37,6 +37,10 @@ export async function subscribeToPush(
       return { success: false, error: 'Push notifications not supported on this device' }
     }
 
+    if (!VAPID_PUBLIC_KEY) {
+      return { success: false, error: 'Push notifications not configured (missing VAPID key)' }
+    }
+
     // Request permission
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') {
