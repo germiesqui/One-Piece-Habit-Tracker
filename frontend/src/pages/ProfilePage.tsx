@@ -4,6 +4,7 @@ import { supabase, signOut } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { usePartyStore } from '@/store/partyStore'
 import { Card, StatBadge, ProgressBar, Button, Spinner } from '@/components/ui'
+import { NotificationSettings } from '@/components/dashboard/NotificationSettings'
 import { TASK_TYPES } from '@/types'
 import type { Character } from '@/types'
 import { useNavigate } from 'react-router-dom'
@@ -224,6 +225,7 @@ export function ProfilePage() {
 
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
         className="flex flex-col gap-2">
+        <NotificationSettings userId={profile.id} partyId={profile.party_id} />
         <Button variant="ghost" onClick={handleSignOut} className="w-full text-ink-400">Sign Out</Button>
         {profile.party_id && (
           <button

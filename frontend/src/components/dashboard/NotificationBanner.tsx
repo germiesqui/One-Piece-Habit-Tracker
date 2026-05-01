@@ -5,29 +5,34 @@ import {
   getNotificationPermission,
   isSubscribed,
   subscribeToPush,
-  unsubscribeFromPush,
 } from '@/lib/push'
+
+const DISMISSED_KEY = 'glc_notif_banner_dismissed'
 
 interface NotificationBannerProps {
   userId: string
   partyId: string | null
 }
 
-type BannerState = 'loading' | 'hidden' | 'prompt' | 'subscribed' | 'unsupported'
+type BannerState = 'loading' | 'hidden' | 'prompt' | 'unsupported'
 
+// ---- Dashboard banner — disappears after any decision ----
 export function NotificationBanner({ userId, partyId }: NotificationBannerProps) {
   const [state, setState]     = useState<BannerState>('loading')
   const [working, setWorking] = useState(false)
   const [error, setError]     = useState<string | null>(null)
-  const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
     async function check() {
-      if (!isPushSupported()) { setState('unsupported'); return }
+      // Already dismissed → never show again on dashboard
+      if (localStorage.getItem(DISMISSED_KEY)) { setState('hidden'); return }
+      if (!isPushSupported())                   { setState('unsupported'); return }
       const permission = getNotificationPermission()
-      if (permission === 'denied') { setState('hidden'); return }
+      if (permission === 'denied')              { setState('hidden'); return }
+      // Already subscribed → no need to prompt
       const subscribed = await isSubscribed()
-      setState(subscribed ? 'subscribed' : 'prompt')
+      if (subscribed) { setState('hidden'); return }
+      setState('prompt')
     }
     check()
   }, [userId])
@@ -38,32 +43,29 @@ export function NotificationBanner({ userId, partyId }: NotificationBannerProps)
     const result = await subscribeToPush(userId, partyId)
     setWorking(false)
     if (result.success) {
-      setState('subscribed')
+      localStorage.setItem(DISMISSED_KEY, '1')
+      setState('hidden')
     } else {
       setError(result.error ?? 'Failed to enable notifications')
     }
   }
 
-  async function handleDisable() {
-    setWorking(true)
-    await unsubscribeFromPush(userId)
-    setWorking(false)
-    setState('prompt')
+  function handleLater() {
+    localStorage.setItem(DISMISSED_KEY, '1')
+    setState('hidden')
   }
 
-  // Don't show anything if unsupported, hidden, or loading
-  if (state === 'loading' || state === 'unsupported' || state === 'hidden') return null
-  if (dismissed) return null
+  if (state === 'loading' || state === 'hidden' || state === 'unsupported') return null
 
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -8 }}
-        className="mx-4 mt-3"
-      >
-        {state === 'prompt' && (
+      {state === 'prompt' && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          className="mx-4 mt-3"
+        >
           <div className="card-parchment px-4 py-3 flex items-center gap-3">
             <span className="text-xl shrink-0">🔔</span>
             <div className="flex-1 min-w-0">
@@ -79,7 +81,7 @@ export function NotificationBanner({ userId, partyId }: NotificationBannerProps)
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <button
-                onClick={() => setDismissed(true)}
+                onClick={handleLater}
                 className="font-heading text-[10px] uppercase tracking-wide text-ink-400
                            hover:text-ink-600 transition-colors"
               >
@@ -96,30 +98,8 @@ export function NotificationBanner({ userId, partyId }: NotificationBannerProps)
               </button>
             </div>
           </div>
-        )}
-
-        {state === 'subscribed' && (
-          <div className="card-parchment px-4 py-3 flex items-center gap-3">
-            <span className="text-xl shrink-0">🔔</span>
-            <div className="flex-1">
-              <p className="font-heading text-xs uppercase tracking-wide text-sea-700">
-                Notifications enabled
-              </p>
-              <p className="font-body text-xs text-ink-500">
-                You'll be reminded at 10am if missions are pending
-              </p>
-            </div>
-            <button
-              onClick={handleDisable}
-              disabled={working}
-              className="font-heading text-[10px] uppercase tracking-wide text-ink-400
-                         hover:text-wanted-600 transition-colors shrink-0"
-            >
-              {working ? '…' : 'Turn off'}
-            </button>
-          </div>
-        )}
-      </motion.div>
+        </motion.div>
+      )}
     </AnimatePresence>
   )
 }
