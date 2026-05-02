@@ -52,127 +52,112 @@ export function VoyageHeader({ currentArc, arcProgress, bossHpMax }: VoyageHeade
   const slug      = islandSlug(currentArc?.name ?? '')
 
   return (
-    <div
-      className="relative w-full overflow-hidden"
-      style={{
-        height: 240,
-        backgroundImage: 'url(/images/sea_texture.png)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundColor: colors.from, // fallback while texture loads
-      }}
-    >
-      {/* Animated sea waves background */}
-      <SeaWaves color={colors.accent} />
+    <div className="relative w-full overflow-hidden flex" style={{ height: 'clamp(170px, 44vw, 210px)' }}>
 
-      <AnimatePresence mode="wait">
+      {/* Sea texture — only fills the area to the left of the island card */}
+      <div
+        className="relative overflow-hidden flex-1"
+        style={{
+          backgroundImage: 'url(/images/sea_texture.jpg)',
+          backgroundSize: 'auto 100%',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundColor: colors.from,
+        }}
+      >
+        <SeaWaves color={colors.accent} />
 
-        {/* ---- SAILING VIEW ---- */}
-        {!isBoss && (
-          <motion.div
-            key={`sailing-${arcNum}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6 }}
-            className="absolute inset-0"
-          >
-            {/* Island PNG — right side, transparent, no box, blends naturally */}
-            <div className="absolute right-0 top-0 bottom-0 w-64" style={{ height: 240 }}>
-              <IslandCard arc={currentArc} slug={slug} colors={colors} />
-            </div>
+        <AnimatePresence mode="wait">
 
-            {/* Ship — flipped, bigger, sails toward island */}
+          {/* ---- SAILING VIEW ---- */}
+          {!isBoss && (
             <motion.div
-              className="absolute bottom-10"
-              animate={{ left: `${6 + arcPct * 0.48}%` }}
-              transition={{ duration: 1.2, ease: 'easeInOut' }}
+              key={`sailing-${arcNum}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.6 }}
+              className="absolute inset-0"
             >
-              <BobbingShip src={shipSrc} />
+              {/* Ship — sails from left toward right edge */}
+              <motion.div
+                className="absolute bottom-6"
+                animate={{ left: `${6 + arcPct * 0.72}%` }}
+                transition={{ duration: 1.2, ease: 'easeInOut' }}
+              >
+                <BobbingShip src={shipSrc} />
+              </motion.div>
+
+              {/* Arc info — top left */}
+              <div className="absolute top-5 left-4">
+                <h2 className="font-display text-xl leading-tight"
+                  style={{
+                    color: '#f0ece0',
+                    textShadow: '0 2px 10px rgba(0,0,0,1), 0 1px 4px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.7)',
+                  }}>
+                  {currentArc?.name ?? '—'}
+                </h2>
+                <p className="font-body text-sm italic"
+                  style={{
+                    color: '#f0ece0',
+                    textShadow: '0 1px 6px rgba(0,0,0,0.95), 0 0 12px rgba(0,0,0,0.8)',
+                  }}>
+                  {currentArc?.location ?? ''}
+                </p>
+              </div>
             </motion.div>
+          )}
 
-            {/* Arc info — top left */}
-            <div className="absolute top-4 left-4">
-              <p className="font-heading text-[10px] uppercase tracking-widest opacity-60 text-white">
-                Current Arc
-              </p>
-              <h2 className="font-display text-lg text-white leading-tight drop-shadow">
-                {currentArc?.name ?? '—'}
-              </h2>
-              <p className="font-body text-xs italic opacity-60 text-white mt-0.5">
-                {currentArc?.location ?? ''}
-              </p>
-            </div>
+          {/* ---- BOSS VIEW (sea side) ---- */}
+          {isBoss && currentArc?.boss_name && (
+            <motion.div
+              key={`boss-${arcNum}`}
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+              className="absolute inset-0"
+            >
+              <BossCard bossName={currentArc.boss_name} colors={colors} />
 
-            {/* Progress bar — bottom left */}
-            <div className="absolute bottom-3 left-4">
-              <div className="flex items-center gap-2">
-                <div className="w-32 h-1.5 rounded-full overflow-hidden"
-                  style={{ background: 'rgba(255,255,255,0.15)' }}>
+              {/* HP overlay */}
+              <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 pt-6"
+                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent)' }}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div>
+                    <p className="font-heading text-[9px] uppercase tracking-widest text-wanted-300">⚔️ Boss Fight</p>
+                    <p className="font-heading text-sm font-bold text-white leading-tight">{currentArc.boss_name}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-mono text-xl font-bold text-white leading-none">
+                      {arcProgress?.boss_current_hp?.toLocaleString()}
+                    </p>
+                    <p className="font-heading text-[9px] uppercase text-wanted-400">HP</p>
+                  </div>
+                </div>
+                <div className="h-3 rounded-sm overflow-hidden border border-wanted-800"
+                  style={{ background: 'rgba(0,0,0,0.5)' }}>
                   <motion.div
-                    className="h-full rounded-full"
-                    style={{ background: colors.accent }}
-                    animate={{ width: `${arcPct}%` }}
-                    transition={{ duration: 1, ease: 'easeOut' }}
+                    className="h-full"
+                    style={{ background: 'linear-gradient(to right, #be123c, #f43f5e)' }}
+                    animate={{ width: `${bossHpPct}%` }}
+                    transition={{ duration: 0.6, ease: 'easeOut' }}
                   />
                 </div>
-                <span className="font-mono text-xs text-white/70">{Math.round(arcPct)}%</span>
               </div>
-            </div>
-          </motion.div>
-        )}
+            </motion.div>
+          )}
 
-        {/* ---- BOSS VIEW ---- */}
-        {isBoss && currentArc?.boss_name && (
-          <motion.div
-            key={`boss-${arcNum}`}
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            className="absolute inset-0 flex flex-col items-center justify-center"
-          >
-            {/* Boss image or placeholder */}
-            <BossCard
-              bossName={currentArc.boss_name}
-              colors={colors}
-            />
+        </AnimatePresence>
+      </div>
 
-            {/* HP bar */}
-            <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 pt-2"
-              style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)' }}>
-              <div className="flex items-center justify-between mb-1">
-                <div>
-                  <p className="font-heading text-[9px] uppercase tracking-widest text-wanted-300">
-                    ⚔️ Boss Fight
-                  </p>
-                  <p className="font-heading text-sm font-bold text-white leading-tight">
-                    {currentArc.boss_name}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-mono text-xl font-bold text-white leading-none">
-                    {arcProgress?.boss_current_hp?.toLocaleString()}
-                  </p>
-                  <p className="font-heading text-[9px] uppercase tracking-wide text-wanted-400">HP</p>
-                </div>
-              </div>
+      {/* Island card — fixed width rectangle, narrower on mobile */}
+      {!isBoss && (
+        <div className="shrink-0 h-full" style={{ width: 'clamp(90px, 22vw, 144px)' }}>
+          <IslandCard arc={currentArc} slug={slug} colors={colors} />
+        </div>
+      )}
 
-              {/* HP bar */}
-              <div className="h-3 rounded-sm overflow-hidden border border-wanted-800"
-                style={{ background: 'rgba(0,0,0,0.5)' }}>
-                <motion.div
-                  className="h-full"
-                  style={{ background: 'linear-gradient(to right, #be123c, #f43f5e)' }}
-                  animate={{ width: `${bossHpPct}%` }}
-                  transition={{ duration: 0.6, ease: 'easeOut' }}
-                />
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-      </AnimatePresence>
     </div>
   )
 }
@@ -190,7 +175,7 @@ function BobbingShip({ src }: { src: string }) {
         className="w-auto object-contain"
         style={{
           // ~18% of viewport width, capped at 96px on desktop, min 56px on tiny screens
-          height: 'clamp(56px, 18vw, 96px)',
+          height: 'clamp(44px, 14vw, 80px)',
           filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.6))',
           transform: 'scaleX(-1)',
         }}
@@ -199,7 +184,7 @@ function BobbingShip({ src }: { src: string }) {
   )
 }
 
-// ---- Island destination card ----
+// ---- Island destination card — filled rectangle ----
 function IslandCard({
   arc,
   slug,
@@ -209,47 +194,66 @@ function IslandCard({
   slug: string
   colors: { from: string; to: string; accent: string }
 }) {
-  const [loaded, setLoaded] = useState(false)
-  const [failed, setFailed] = useState(false)
-  const imgRef = useRef<HTMLImageElement>(null)
+  const [loaded, setLoaded]   = useState(false)
+  const [failed, setFailed]   = useState(false)
+  const [src, setSrc]         = useState('')
+  const imgRef                = useRef<HTMLImageElement>(null)
 
   useEffect(() => {
     if (!slug) return
-    // Reset on slug change so a new arc always tries to load
     setFailed(false)
     setLoaded(false)
+    setSrc(`/islands/${slug}.jpg`)
   }, [slug])
 
   useEffect(() => {
-    if (!slug) return
+    if (!slug || failed) return
     if (imgRef.current?.complete && imgRef.current?.naturalWidth > 0) {
       setLoaded(true)
     }
-  }, [slug, failed])
+  }, [slug, failed, src])
 
   return (
-    <div className="relative w-full flex items-end justify-end" style={{ height: 240 }}>
-      {/* Real PNG — transparent, blends naturally with background */}
-      {!failed && slug ? (
+    <div className="relative h-full w-full overflow-hidden">
+      {/* Colour placeholder — always behind */}
+      <div
+        className="absolute inset-0 flex flex-col items-center justify-center"
+        style={{ background: `linear-gradient(160deg, ${colors.from}, ${colors.to})` }}
+      >
+        <div className="text-3xl mb-1 opacity-50">🏝️</div>
+        <p className="font-heading text-[9px] uppercase tracking-wider text-center px-2 leading-tight opacity-60"
+          style={{ color: colors.accent }}>
+          {arc?.name ?? '—'}
+        </p>
+      </div>
+
+      {/* Real image — fills rectangle, object-cover */}
+      {!failed && src && (
         <img
           ref={imgRef}
-          src={`/islands/${slug}.png`}
+          src={src}
           alt={arc?.name ?? ''}
-          className="h-full w-auto object-contain object-bottom transition-opacity duration-500"
+          className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500"
           style={{ opacity: loaded ? 1 : 0 }}
           onLoad={() => setLoaded(true)}
-          onError={() => setFailed(true)}
+          onError={() => {
+            // Try fallback chain: jpg → webp → png → give up
+            if (src.endsWith('.jpg')) {
+              setSrc(`/islands/${slug}.webp`)
+            } else if (src.endsWith('.webp')) {
+              setSrc(`/islands/${slug}.png`)
+            } else {
+              setFailed(true)
+            }
+          }}
         />
-      ) : (
-        /* Fallback placeholder when no PNG available */
-        <div className="flex flex-col items-center justify-center w-full h-full pb-6 opacity-40">
-          <div className="text-4xl mb-1">🏝️</div>
-          <p className="font-heading text-[9px] uppercase tracking-wider text-center px-2 leading-tight"
-            style={{ color: colors.accent }}>
-            {arc?.name ?? '—'}
-          </p>
-        </div>
       )}
+
+      {/* Left fade to blend with sea background */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.35) 0%, transparent 35%)' }}
+      />
     </div>
   )
 }
