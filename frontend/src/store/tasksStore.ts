@@ -18,6 +18,7 @@ interface TasksState {
   updateTask: (taskId: string, data: Partial<TaskFormData>) => Promise<void>
   deleteTask: (taskId: string) => Promise<void>
   completeTask: (params: CompleteTaskParams) => Promise<XpResult | null>
+  uncompleteTask: (params: UncompleteTaskParams) => Promise<void>
   clearArcEvent: () => void
   clearSecondWindMessage: () => void
 }
@@ -33,6 +34,12 @@ interface CompleteTaskParams {
   currentStreak: number
   lastActiveDate: string | null
   consecutiveMissedDays: number
+}
+
+interface UncompleteTaskParams {
+  taskId:    string
+  userId:    string
+  partyId:   string
 }
 
 export const useTasksStore = create<TasksState>((set, get) => ({
@@ -209,6 +216,120 @@ export const useTasksStore = create<TasksState>((set, get) => ({
     } catch (e) {
       console.error('completeTask threw:', e)
       return null
+    }
+  },
+
+  uncompleteTask: async ({ taskId, userId, partyId }) => {
+    try {
+      // Find today's completion for this task
+      const today = new Date().toISOString().split('T')[0]
+      const { data: completion } = await supabase
+        .from('completions').select('*')
+        .eq('task_id', taskId).eq('user_id', userId)
+        .gte('completed_at', `${today}T00:00:00`)
+        .maybeSingle()
+
+      if (!completion) return
+
+      // 1. Delete the completion
+      await supabase.from('completions').delete().eq('id', completion.id)
+
+      // 2. Reverse profile stats
+      const { data: profile } = await supabase
+        .from('profiles').select('total_xp, power, bounty, current_streak, last_active_date')
+        .eq('id', userId).single()
+
+      if (profile) {
+        // Check if this was the only completion today — if so, reset last_active_date
+        const { data: remaining } = await supabase
+          .from('completions').select('id')
+          .eq('user_id', userId)
+          .gte('completed_at', `${today}T00:00:00`)
+
+        const noMoreToday = !remaining?.length
+
+        await supabase.from('profiles').update({
+          total_xp: Math.max(0, profile.total_xp - completion.xp_earned),
+          power:    Math.max(0, profile.power    - completion.power_earned),
+          bounty:   Math.max(0, profile.bounty   - completion.bounty_earned),
+          // Reset streak if no more completions today
+          ...(noMoreToday ? {
+            current_streak: Math.max(0, profile.current_streak - 1),
+            last_active_date: null,
+          } : {}),
+        }).eq('id', userId)
+      }
+
+      // 3. Reverse weekly XP
+      const weekStart = getWeekStart()
+      const { data: weekly } = await supabase
+        .from('weekly_xp').select('*')
+        .eq('user_id', userId).eq('week_start', weekStart).maybeSingle()
+
+      if (weekly) {
+        if (completion.counted_for_party) {
+          await supabase.from('weekly_xp').update({
+            xp_used:     Math.max(0, weekly.xp_used     - completion.xp_earned),
+            tasks_today: Math.max(0, weekly.tasks_today - 1),
+          }).eq('id', weekly.id)
+        } else {
+          await supabase.from('weekly_xp').update({
+            xp_personal: Math.max(0, weekly.xp_personal - completion.xp_earned),
+            tasks_today: Math.max(0, weekly.tasks_today  - 1),
+          }).eq('id', weekly.id)
+        }
+      }
+
+      // 4. Reverse arc progress XP (only if counted for party)
+      if (completion.counted_for_party) {
+        const partyStore = usePartyStore.getState()
+        const { arcProgress } = partyStore
+
+        if (arcProgress) {
+          const newProgressXp = Math.max(0, arcProgress.progress_xp - completion.xp_earned)
+
+          // If arc is boss_active or boss_unlocked and we're going back below xp_required
+          // revert arc status to active
+          const { data: arc } = await supabase
+            .from('arcs').select('xp_required, power_required, bounty_required')
+            .eq('id', arcProgress.arc_id).single()
+
+          const shouldRevertBoss =
+            (arcProgress.status === 'boss_active' || arcProgress.status === 'boss_unlocked') &&
+            arc && newProgressXp < arc.xp_required
+
+          if (shouldRevertBoss) {
+            await supabase.from('arc_progress').update({
+              progress_xp:   newProgressXp,
+              status:        'active',
+              boss_current_hp: null,
+              boss_started_at: null,
+            }).eq('id', arcProgress.id)
+          } else if (arcProgress.status === 'boss_active' && arcProgress.boss_current_hp !== null) {
+            // Boss fight active — restore HP by the damage this completion dealt
+            const restoredHp = arcProgress.boss_current_hp + completion.xp_raw
+            await supabase.from('arc_progress').update({
+              boss_current_hp: restoredHp,
+            }).eq('id', arcProgress.id)
+          } else {
+            await supabase.from('arc_progress').update({
+              progress_xp: newProgressXp,
+            }).eq('id', arcProgress.id)
+          }
+
+          // Refresh arc data in store
+          await partyStore.fetchArcData(partyId)
+          await partyStore.fetchWeeklyXp(partyId)
+        }
+      }
+
+      // 5. Remove from local completions
+      set(state => ({
+        completions: state.completions.filter(c => c.id !== completion.id)
+      }))
+
+    } catch (e) {
+      console.error('uncompleteTask error:', e)
     }
   },
 

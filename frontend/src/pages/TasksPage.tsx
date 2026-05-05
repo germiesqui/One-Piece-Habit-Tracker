@@ -12,8 +12,8 @@ type Modal = { mode: 'create' } | { mode: 'edit'; task: Task } | null
 
 export function TasksPage() {
   const { profile, fetchProfile } = useAuthStore()
-  const { members, weeklyXp } = usePartyStore()
-  const { tasks, completions, loading, error, fetchTasks, fetchTodayCompletions, createTask, updateTask, deleteTask, completeTask } = useTasksStore()
+  const { members, weeklyXp, arcProgress } = usePartyStore()
+  const { tasks, completions, loading, error, fetchTasks, fetchTodayCompletions, createTask, updateTask, deleteTask, completeTask, uncompleteTask } = useTasksStore()
 
   const [modal, setModal]           = useState<Modal>(null)
   const [saving, setSaving]         = useState(false)
@@ -101,6 +101,12 @@ export function TasksPage() {
 
     await fetchProfile(profile.id)
     return result
+  }
+
+  async function handleUncomplete(taskId: string) {
+    if (!profile?.party_id) return
+    await uncompleteTask({ taskId, userId: profile.id, partyId: profile.party_id })
+    await fetchProfile(profile.id)
   }
 
   async function handleDelete(taskId: string) {
@@ -208,7 +214,9 @@ export function TasksPage() {
                 key={task.id}
                 task={task}
                 completedToday={completedTaskIds.has(task.id)}
+                arcCompleted={arcProgress?.status === 'completed'}
                 onComplete={handleComplete}
+                onUncomplete={handleUncomplete}
                 onEdit={task => setModal({ mode: 'edit', task })}
                 onDelete={handleDelete}
               />

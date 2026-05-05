@@ -8,18 +8,32 @@ import { Button } from '@/components/ui'
 interface TaskCardProps {
   task: Task
   completedToday?: boolean
-  onComplete: (task: Task) => Promise<XpResult | null>
-  onEdit: (task: Task) => void
-  onDelete: (taskId: string) => void
+  arcCompleted?:   boolean   // true if arc advanced since last completion
+  onComplete:   (task: Task) => Promise<XpResult | null>
+  onUncomplete: (taskId: string) => Promise<void>
+  onEdit:       (task: Task) => void
+  onDelete:     (taskId: string) => void
 }
 
-export function TaskCard({ task, completedToday, onComplete, onEdit, onDelete }: TaskCardProps) {
-  const [completing, setCompleting]   = useState(false)
+export function TaskCard({ task, completedToday, arcCompleted, onComplete, onUncomplete, onEdit, onDelete }: TaskCardProps) {
+  const [completing, setCompleting]     = useState(false)
+  const [uncompleting, setUncompleting] = useState(false)
   const [xpResult, setXpResult]       = useState<XpResult | null>(null)
   const [showPop, setShowPop]         = useState(false)
   const [justCompleted, setJustDone]  = useState(false)
   const [expanded, setExpanded]       = useState(false)
 
+  async function handleUncomplete() {
+    if (uncompleting) return
+    setUncompleting(true)
+    try {
+      await onUncomplete(task.id)
+    } catch (e) {
+      console.error('handleUncomplete error:', e)
+    } finally {
+      setUncompleting(false)
+    }
+  }
   const tier       = DIFFICULTY_TIERS.find(t => t.level === task.difficulty)!
   const typeConfig = TASK_TYPES.find(t => t.key === task.task_type)!
 
@@ -32,7 +46,7 @@ export function TaskCard({ task, completedToday, onComplete, onEdit, onDelete }:
         setXpResult(result)
         setJustDone(true)
         setShowPop(true)
-        setTimeout(() => setShowPop(false), 2200)
+        setTimeout(() => setShowPop(false), 3000)
         setTimeout(() => setJustDone(false), 600)
       }
     } catch (e) {
@@ -185,11 +199,22 @@ export function TaskCard({ task, completedToday, onComplete, onEdit, onDelete }:
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="mt-3 pt-3 border-t border-parchment-200 overflow-hidden"
+              className="flex gap-2 mt-3 pt-3 border-t border-parchment-200 overflow-hidden"
             >
-              <p className="font-body text-xs text-ink-400 italic text-center">
-                ✓ Completed today — cannot be edited
-              </p>
+              {arcCompleted ? (
+                <p className="font-body text-xs text-ink-400 italic text-center w-full">
+                  Arc advanced — cannot undo
+                </p>
+              ) : (
+                <Button
+                  size="sm" variant="secondary"
+                  loading={uncompleting}
+                  onClick={handleUncomplete}
+                  className="flex-1"
+                >
+                  ↩ Undo completion
+                </Button>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -202,7 +227,7 @@ export function TaskCard({ task, completedToday, onComplete, onEdit, onDelete }:
             initial={{ opacity: 1, y: 0, x: '-50%' }}
             animate={{ opacity: [1, 1, 1, 0], y: -64, x: '-50%' }}
             exit={{}}
-            transition={{ duration: 1.5, ease: 'easeOut', times: [0, 0.4, 0.55, 1] }}
+            transition={{ duration: 2.8, ease: 'easeOut', times: [0, 0.4, 0.75, 1] }}
             className="absolute left-1/2 top-0 pointer-events-none z-50 flex flex-col items-center gap-0.5"
           >
             {/* Main XP number */}
