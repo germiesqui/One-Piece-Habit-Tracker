@@ -166,12 +166,12 @@ export function TasksPage() {
                   Taking longer than usual…
                 </p>
                 <button
-                  onClick={() => profile && loadTasks(profile.id)}
+                  onClick={() => window.location.reload()}
                   className="font-heading text-xs uppercase tracking-wider text-sea-600
                              hover:text-sea-800 border border-sea-300 rounded px-4 py-2
                              transition-colors bg-parchment-50"
                 >
-                  ↻ Retry
+                  ↻ Reload
                 </button>
               </motion.div>
             )}
@@ -185,11 +185,11 @@ export function TasksPage() {
           </p>
           <p className="font-body text-xs text-ink-400 italic mb-4">{error}</p>
           <button
-            onClick={() => profile && loadTasks(profile.id)}
+            onClick={() => window.location.reload()}
             className="font-heading text-xs uppercase tracking-wider text-sea-600 hover:text-sea-800
                        border border-sea-300 rounded px-3 py-1.5 transition-colors"
           >
-            ↻ Retry
+            ↻ Reload
           </button>
         </div>
       ) : filtered.length === 0 && tasks.length === 0 ? (

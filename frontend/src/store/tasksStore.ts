@@ -72,12 +72,41 @@ export const useTasksStore = create<TasksState>((set, get) => ({
   },
 
   fetchTodayCompletions: async (userId) => {
-    const today = new Date().toISOString().split('T')[0]
-    const { data } = await supabase
-      .from('completions').select('*').eq('user_id', userId)
+    const today     = new Date().toISOString().split('T')[0]
+    const weekStart = getWeekStart()
+
+    // Fetch today's completions (for daily + one-off tasks)
+    const { data: todayData } = await supabase
+      .from('completions').select('*, tasks(repeat_type)')
+      .eq('user_id', userId)
       .gte('completed_at', `${today}T00:00:00`)
       .lte('completed_at', `${today}T23:59:59`)
-    if (data) set({ completions: data as Completion[] })
+
+    // Fetch this week's completions (for weekly + custom tasks)
+    const { data: weekData } = await supabase
+      .from('completions').select('*, tasks(repeat_type)')
+      .eq('user_id', userId)
+      .gte('completed_at', `${weekStart}T00:00:00`)
+
+    // Merge: use week completions for weekly/custom tasks, today for rest
+    const seen = new Set<string>()
+    const merged: Completion[] = []
+
+    const allData = [...(weekData ?? []), ...(todayData ?? [])]
+    for (const c of allData) {
+      if (seen.has(c.id)) continue
+      seen.add(c.id)
+      const repeatType = (c as any).tasks?.repeat_type
+      // For weekly/custom tasks, count any completion this week
+      // For daily/none tasks, only count today's completion
+      if (repeatType === 'weekly' || repeatType === 'custom') {
+        merged.push(c as Completion)
+      } else if (todayData?.find(t => t.id === c.id)) {
+        merged.push(c as Completion)
+      }
+    }
+
+    set({ completions: merged })
   },
 
   createTask: async (userId, data) => {
