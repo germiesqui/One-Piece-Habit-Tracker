@@ -1,177 +1,236 @@
-# Supabase CLI
+# Grand Line Chronicles 🏴‍☠️
 
-[![Coverage Status](https://coveralls.io/repos/github/supabase/cli/badge.svg?branch=develop)](https://coveralls.io/github/supabase/cli?branch=develop) [![Bitbucket Pipelines](https://img.shields.io/bitbucket/pipelines/supabase-cli/setup-cli/master?style=flat-square&label=Bitbucket%20Canary)](https://bitbucket.org/supabase-cli/setup-cli/pipelines) [![Gitlab Pipeline Status](https://img.shields.io/gitlab/pipeline-status/sweatybridge%2Fsetup-cli?label=Gitlab%20Canary)
-](https://gitlab.com/sweatybridge/setup-cli/-/pipelines)
+> *"I'm going to be King of the Pirates."*
 
-[Supabase](https://supabase.io) is an open source Firebase alternative. We're building the features of Firebase using enterprise-grade open source tools.
+A collaborative, gamified habit tracker set in the One Piece universe. Build real-world habits while sailing the Grand Line with your crew — completing tasks advances your ship, powers up your characters, and drives you toward an epic year-long journey.
 
-This repository contains all the functionality for Supabase CLI.
+---
 
-- [x] Running Supabase locally
-- [x] Managing database migrations
-- [x] Creating and deploying Supabase Functions
-- [x] Generating types directly from your database schema
-- [x] Making authenticated HTTP requests to [Management API](https://supabase.com/docs/reference/api/introduction)
+## What is it?
 
-## Getting started
+Grand Line Chronicles turns habit-building into a shared One Piece adventure. A party of up to 6 people joins together, picks their Straw Hat crew members, and embarks on the canonical story from Romance Dawn all the way to the Final Island.
 
-### Install the CLI
+Every real-world habit you complete — studying, exercising, creating, reviewing — earns XP that moves the ship forward. The journey is designed to last roughly one year of consistent effort, with clear weekly progress visible at all times.
 
-Available via [NPM](https://www.npmjs.com) as dev dependency. To install:
+### Core features
 
-```bash
-npm i supabase --save-dev
-```
+- **Collaborative by design** — party progress is the main metric, not individual rankings
+- **One Piece narrative** — 17+ story arcs, each with a boss fight to defeat before moving on
+- **Habit-first mechanics** — daily soft caps and weekly budgets reward consistency over grinding
+- **5 task types** — Training, Study, Immersion, Creation, Review — each growing different character stats
+- **Boss fights** — each arc ends with a boss that requires sustained daily effort from the whole crew to defeat
+- **Catch-up system** — returning after absence gives the party a Second Wind XP bonus
+- **Fairness caps** — weekly XP budgets normalise by party size so one person can't carry the crew
+- **Push notifications** — daily 10am reminders if you have pending missions (PWA, Android + iOS 16.4+)
+- **Installable PWA** — works as a mobile app on Android and iOS
 
-When installing with yarn 4, you need to disable experimental fetch with the following nodejs config.
+---
 
-```
-NODE_OPTIONS=--no-experimental-fetch yarn add supabase
-```
+## The journey
 
-> **Note**
-For Bun versions below v1.0.17, you must add `supabase` as a [trusted dependency](https://bun.sh/guides/install/trusted) before running `bun add -D supabase`.
+The story follows the manga arc order, from East Blue to the New World:
 
-<details>
-  <summary><b>macOS</b></summary>
+| Act | Arcs | Duration |
+|-----|------|----------|
+| East Blue | Romance Dawn → Loguetown | ~10 weeks |
+| Grand Line Part 1 | Drum Island → Sabaody | ~20 weeks |
+| New World | Marineford → Wano | ~22 weeks |
+| The Final Island | ??? | hidden until Wano is cleared |
 
-  Available via [Homebrew](https://brew.sh). To install:
+Each arc has its own progress bar. When the bar fills and your crew meets the Power and Bounty stat thresholds, the boss fight unlocks. Defeat the boss as a team to sail to the next island.
 
-  ```sh
-  brew install supabase/tap/supabase
-  ```
+---
 
-  To install the beta release channel:
-  
-  ```sh
-  brew install supabase/tap/supabase-beta
-  brew link --overwrite supabase-beta
-  ```
-  
-  To upgrade:
+## Task system
 
-  ```sh
-  brew upgrade supabase
-  ```
-</details>
+Tasks have five types that grow two core stats:
 
-<details>
-  <summary><b>Windows</b></summary>
+| Type | Stat | Example |
+|------|------|---------|
+| 🗡️ Training | Power | Flashcards, drills |
+| 📖 Study | Power | Textbooks, reading |
+| 🌊 Immersion | Bounty | Watching, listening |
+| ✍️ Creation | Bounty | Writing, speaking |
+| 🔁 Review | Power + Bounty | Revision, reflection |
 
-  Available via [Scoop](https://scoop.sh). To install:
+Difficulty tiers (Den Den → Rookie → Pirate → Supernova → Yonko) determine XP and stat rewards. Tasks can repeat daily, weekly, or on custom days.
 
-  ```powershell
-  scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
-  scoop install supabase
-  ```
+---
 
-  To upgrade:
+## Tech stack
 
-  ```powershell
-  scoop update supabase
-  ```
-</details>
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 19, Vite, TypeScript, Tailwind CSS |
+| Animations | Framer Motion |
+| State | Zustand |
+| Backend | Supabase (PostgreSQL + Auth + Realtime + Edge Functions) |
+| Hosting | Vercel (frontend) + Supabase (backend) |
+| Push notifications | Web Push API + VAPID + Supabase Edge Functions |
+| PWA | vite-plugin-pwa + Workbox |
+| Testing | Vitest |
 
-<details>
-  <summary><b>Linux</b></summary>
+### External services
 
-  Available via [Homebrew](https://brew.sh) and Linux packages.
+- **[Supabase](https://supabase.com)** — database, authentication, realtime subscriptions, edge functions. Free tier is sufficient for parties up to ~20 people.
+- **[Vercel](https://vercel.com)** — frontend hosting with automatic deploys from GitHub. Free tier.
+- **Web Push / VAPID** — push notifications via the browser's native Push API. No third-party service required — notifications are sent directly from the Supabase Edge Function to the device.
 
-  #### via Homebrew
+---
 
-  To install:
+## Setup
 
-  ```sh
-  brew install supabase/tap/supabase
-  ```
+### Prerequisites
 
-  To upgrade:
+- Node.js 20+
+- pnpm (recommended) or npm
+- A free [Supabase](https://supabase.com) account
 
-  ```sh
-  brew upgrade supabase
-  ```
+### 1. Supabase
 
-  #### via Linux packages
+1. Create a new project at [supabase.com](https://supabase.com)
+2. Go to **SQL Editor** and run these files in order:
+   - `supabase/migrations/001_schema.sql` — database schema
+   - `supabase/migrations/002_seed.sql` — arc and character data
+   - `supabase/migrations/003_character_claimed_arc.sql`
+   - `supabase/migrations/004_enable_realtime.sql`
+   - `supabase/migrations/005_push_subscriptions.sql`
+   - `supabase/policies/rls.sql` — row-level security
+3. Go to **Authentication → URL Configuration** and add your deployed URL to **Redirect URLs**
+4. Go to **Project Settings → API** and copy your **Project URL** and **Publishable key**
 
-  Linux packages are provided in [Releases](https://github.com/supabase/cli/releases). To install, download the `.apk`/`.deb`/`.rpm`/`.pkg.tar.zst` file depending on your package manager and run the respective commands.
-
-  ```sh
-  sudo apk add --allow-untrusted <...>.apk
-  ```
-
-  ```sh
-  sudo dpkg -i <...>.deb
-  ```
-
-  ```sh
-  sudo rpm -i <...>.rpm
-  ```
-
-  ```sh
-  sudo pacman -U <...>.pkg.tar.zst
-  ```
-</details>
-
-<details>
-  <summary><b>Other Platforms</b></summary>
-
-  You can also install the CLI via [go modules](https://go.dev/ref/mod#go-install) without the help of package managers.
-
-  ```sh
-  go install github.com/supabase/cli@latest
-  ```
-
-  Add a symlink to the binary in `$PATH` for easier access:
-
-  ```sh
-  ln -s "$(go env GOPATH)/bin/cli" /usr/bin/supabase
-  ```
-
-  This works on other non-standard Linux distros.
-</details>
-
-<details>
-  <summary><b>Community Maintained Packages</b></summary>
-
-  Available via [pkgx](https://pkgx.sh/). Package script [here](https://github.com/pkgxdev/pantry/blob/main/projects/supabase.com/cli/package.yml).
-  To install in your working directory:
-
-  ```bash
-  pkgx install supabase
-  ```
-
-  Available via [Nixpkgs](https://nixos.org/). Package script [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/tools/supabase-cli/default.nix).
-</details>
-
-### Run the CLI
+### 2. VAPID keys (for push notifications)
 
 ```bash
-supabase bootstrap
+npx web-push generate-vapid-keys
 ```
 
-Or using npx:
+Add the output to **Supabase → Settings → Edge Functions → Secrets**:
+```
+VAPID_PUBLIC_KEY=...
+VAPID_PRIVATE_KEY=...
+VAPID_MAILTO=mailto:your@email.com
+```
+
+### 3. Frontend
 
 ```bash
-npx supabase bootstrap
+cd frontend
+pnpm install
+cp .env.example .env
 ```
 
-The bootstrap command will guide you through the process of setting up a Supabase project using one of the [starter](https://github.com/supabase-community/supabase-samples/blob/main/samples.json) templates.
-
-## Docs
-
-Command & config reference can be found [here](https://supabase.com/docs/reference/cli/about).
-
-## Breaking changes
-
-We follow semantic versioning for changes that directly impact CLI commands, flags, and configurations.
-
-However, due to dependencies on other service images, we cannot guarantee that schema migrations, seed.sql, and generated types will always work for the same CLI major version. If you need such guarantees, we encourage you to pin a specific version of CLI in package.json.
-
-## Developing
-
-To run from source:
-
-```sh
-# Go >= 1.22
-go run . help
+Edit `.env`:
 ```
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+VITE_VAPID_PUBLIC_KEY=your-vapid-public-key
+```
+
+```bash
+pnpm dev        # development server at http://localhost:5173
+pnpm build      # production build
+pnpm test       # run test suite (129 tests)
+```
+
+### 4. Push notification cron (optional)
+
+In **Supabase SQL Editor**, set up the daily 10am reminder (Europe/Madrid):
+
+```sql
+-- Enable pg_cron
+create extension if not exists pg_cron;
+
+-- 10am CEST (summer, UTC+2)
+select cron.schedule('notify-summer', '0 8 * * *', $$
+  select net.http_post(
+    url := 'https://YOUR-PROJECT.supabase.co/functions/v1/send-notifications',
+    headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer YOUR-ANON-KEY'),
+    body := '{}'::jsonb
+  );
+$$);
+
+-- 10am CET (winter, UTC+1)
+select cron.schedule('notify-winter', '0 9 * * *', $$
+  select net.http_post(
+    url := 'https://YOUR-PROJECT.supabase.co/functions/v1/send-notifications',
+    headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer YOUR-ANON-KEY'),
+    body := '{}'::jsonb
+  );
+$$);
+```
+
+Deploy the edge function via the Supabase dashboard → **Edge Functions → New Function → send-notifications** → paste `supabase/functions/send-notifications/index.ts`.
+
+### 5. Deploy to Vercel
+
+1. Push to GitHub
+2. Import the repo in [vercel.com](https://vercel.com)
+3. Set **Root Directory** to `frontend`
+4. Add the three environment variables from your `.env`
+5. Deploy
+
+---
+
+## Project structure
+
+```
+grand-line-chronicles/
+├── supabase/
+│   ├── migrations/          # Database schema and seed data
+│   ├── policies/            # Row Level Security
+│   └── functions/
+│       └── send-notifications/  # Push notification cron
+└── frontend/
+    ├── public/
+    │   ├── icons/           # PWA icons (generate with pnpm generate-icons)
+    │   ├── bosses/          # Boss images (morgan.webp, buggy.png, etc.)
+    │   ├── ships/           # going_merry.png, sunny.png
+    │   ├── islands/         # Island destination images (romance_dawn.jpg, etc.)
+    │   ├── images/          # sea_texture.jpg
+    │   └── sw-push.js       # Service worker push handlers
+    └── src/
+        ├── __tests__/       # Vitest test suite (129 tests)
+        ├── components/
+        │   ├── ui/          # Base components (Button, Card, Skeleton, etc.)
+        │   ├── layout/      # AppShell, bottom navigation
+        │   ├── tasks/       # TaskCard, TaskForm
+        │   ├── map/         # VoyageHeader (dashboard header)
+        │   └── dashboard/   # NotificationBanner, NotificationSettings
+        ├── lib/
+        │   ├── supabase.ts  # Supabase client
+        │   ├── xp.ts        # XP calculations, caps, streaks
+        │   └── push.ts      # Push notification utilities
+        ├── pages/           # Route-level components
+        ├── store/           # Zustand stores (auth, party, tasks)
+        └── types/           # TypeScript types and constants
+```
+
+---
+
+## Assets
+
+| Path | Description |
+|------|-------------|
+| `public/images/sea_texture.jpg` | Background texture for the voyage header |
+| `public/ships/going_merry.png` | Going Merry ship (arcs 1–10) |
+| `public/ships/sunny.png` | Thousand Sunny ship (arc 11+) |
+| `public/bosses/{name}.png/webp` | Boss images (morgan, buggy, kuro, etc.) |
+| `public/islands/{slug}.jpg/png/webp` | Island destination images |
+| `public/icons/icon-192.png` | PWA icon (generate with `pnpm generate-icons`) |
+| `public/icons/icon-512.png` | PWA icon large (generate with `pnpm generate-icons`) |
+| `public/icons/badge-96.png` | Android notification badge (monochrome white) |
+
+Island image slugs follow the arc name lowercased with spaces replaced by underscores: `romance_dawn`, `orange_town`, `drum_island`, `alabasta`, `skypiea`, `enies_lobby`, `thriller_bark`, `marineford`, `fish_man_island`, `dressrosa`, `whole_cake_island`, `wano_country`.
+
+---
+
+## Game design
+
+Full game design decisions, XP formulas, arc pacing, and system design are documented in `GrandLineChronicles_GDD.md`.
+
+---
+
+## Disclaimer
+
+Grand Line Chronicles is a fan-made project. One Piece and all related characters and story elements are the property of Eiichiro Oda and Toei Animation. This project is not affiliated with or endorsed by the rights holders.
