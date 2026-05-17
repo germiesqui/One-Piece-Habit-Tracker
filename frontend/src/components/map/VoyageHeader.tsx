@@ -265,7 +265,7 @@ function BossCard({
   const slug = bossName.toLowerCase().replace(/[^a-z0-9]+/g, '_')
 
   return (
-    <div className="relative w-full h-full" style={{ background: '#0a0a0a' }}>
+    <div className="relative w-full h-full" style={{ background: '#f9f1dc' }}>
       {/* Boss image — contain so full image visible, no crop */}
       {!failed && src && (
         <img
