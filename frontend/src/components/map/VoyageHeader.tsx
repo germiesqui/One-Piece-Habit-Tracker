@@ -52,114 +52,102 @@ export function VoyageHeader({ currentArc, arcProgress, bossHpMax }: VoyageHeade
   const slug      = islandSlug(currentArc?.name ?? '')
 
   return (
-    <div className="relative w-full overflow-hidden flex" style={{ height: 'clamp(170px, 44vw, 210px)' }}>
+    <div className="relative w-full overflow-hidden" style={{ height: 'clamp(170px, 44vw, 210px)' }}>
 
-      {/* Sea texture — only fills the area to the left of the island card */}
-      <div
-        className="relative overflow-hidden flex-1"
-        style={{
-          backgroundImage: 'url(/images/sea_texture.jpg)',
-          backgroundSize: 'auto 100%',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          backgroundColor: colors.from,
-        }}
-      >
-        <SeaWaves color={colors.accent} />
+      {/* ---- BOSS MODE: fills entire header, no sea texture, no island card ---- */}
+      {isBoss && currentArc?.boss_name && (
+        <motion.div
+          key={`boss-${arcNum}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="absolute inset-0"
+        >
+          <BossCard bossName={currentArc.boss_name} colors={colors} />
 
-        <AnimatePresence mode="wait">
-
-          {/* ---- SAILING VIEW ---- */}
-          {!isBoss && (
-            <motion.div
-              key={`sailing-${arcNum}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.6 }}
-              className="absolute inset-0"
-            >
-              {/* Ship — sails from left toward right edge */}
-              <motion.div
-                className="absolute bottom-6"
-                animate={{ left: `${6 + arcPct * 0.72}%` }}
-                transition={{ duration: 1.2, ease: 'easeInOut' }}
-              >
-                <BobbingShip src={shipSrc} />
-              </motion.div>
-
-              {/* Arc info — top left */}
-              <div className="absolute top-5 left-4">
-                <h2 className="font-display text-xl leading-tight"
-                  style={{
-                    color: '#f0ece0',
-                    textShadow: '0 2px 10px rgba(0,0,0,1), 0 1px 4px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.7)',
-                  }}>
-                  {currentArc?.name ?? '—'}
-                </h2>
-                <p className="font-body text-sm italic"
-                  style={{
-                    color: '#f0ece0',
-                    textShadow: '0 1px 6px rgba(0,0,0,0.95), 0 0 12px rgba(0,0,0,0.8)',
-                  }}>
-                  {currentArc?.location ?? ''}
+          {/* HP overlay at bottom */}
+          <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 pt-8"
+            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, transparent 100%)' }}>
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <p className="font-heading text-[9px] uppercase tracking-widest text-wanted-300">⚔️ Boss Fight</p>
+                <p className="font-heading text-sm font-bold text-white leading-tight">{currentArc.boss_name}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-mono text-xl font-bold text-white leading-none">
+                  {arcProgress?.boss_current_hp?.toLocaleString()}
                 </p>
+                <p className="font-heading text-[9px] uppercase text-wanted-400">HP</p>
               </div>
-            </motion.div>
-          )}
+            </div>
+            <div className="h-3 rounded-sm overflow-hidden border border-wanted-800"
+              style={{ background: 'rgba(0,0,0,0.5)' }}>
+              <motion.div
+                className="h-full"
+                style={{ background: 'linear-gradient(to right, #be123c, #f43f5e)' }}
+                animate={{ width: `${bossHpPct}%` }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+              />
+            </div>
+          </div>
+        </motion.div>
+      )}
 
-          {/* ---- BOSS VIEW (sea side) ---- */}
-          {isBoss && currentArc?.boss_name && (
-            <motion.div
-              key={`boss-${arcNum}`}
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-              className="absolute inset-0"
-            >
-              <BossCard bossName={currentArc.boss_name} colors={colors} />
-
-              {/* HP overlay */}
-              <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 pt-6"
-                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent)' }}>
-                <div className="flex items-center justify-between mb-1.5">
-                  <div>
-                    <p className="font-heading text-[9px] uppercase tracking-widest text-wanted-300">⚔️ Boss Fight</p>
-                    <p className="font-heading text-sm font-bold text-white leading-tight">{currentArc.boss_name}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-mono text-xl font-bold text-white leading-none">
-                      {arcProgress?.boss_current_hp?.toLocaleString()}
-                    </p>
-                    <p className="font-heading text-[9px] uppercase text-wanted-400">HP</p>
-                  </div>
-                </div>
-                <div className="h-3 rounded-sm overflow-hidden border border-wanted-800"
-                  style={{ background: 'rgba(0,0,0,0.5)' }}>
-                  <motion.div
-                    className="h-full"
-                    style={{ background: 'linear-gradient(to right, #be123c, #f43f5e)' }}
-                    animate={{ width: `${bossHpPct}%` }}
-                    transition={{ duration: 0.6, ease: 'easeOut' }}
-                  />
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-        </AnimatePresence>
-      </div>
-
-      {/* Island card — fixed width rectangle, narrower on mobile */}
+      {/* ---- SAILING MODE: sea texture + ship + island card ---- */}
       {!isBoss && (
-        <div className="shrink-0 h-full" style={{ width: 'clamp(90px, 22vw, 144px)' }}>
-          <IslandCard arc={currentArc} slug={slug} colors={colors} />
+        <div className="absolute inset-0 flex">
+          {/* Sea texture side */}
+          <div
+            className="relative overflow-hidden flex-1"
+            style={{
+              backgroundImage: 'url(/images/sea_texture.jpg)',
+              backgroundSize: 'auto 100%',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              backgroundColor: colors.from,
+            }}
+          >
+            <SeaWaves color={colors.accent} />
+
+            {/* Ship */}
+            <motion.div
+              className="absolute bottom-6"
+              animate={{ left: `${6 + arcPct * 0.72}%` }}
+              transition={{ duration: 1.2, ease: 'easeInOut' }}
+            >
+              <BobbingShip src={shipSrc} />
+            </motion.div>
+
+            {/* Arc info */}
+            <div className="absolute top-5 left-4">
+              <h2 className="font-display text-xl leading-tight"
+                style={{
+                  color: '#f0ece0',
+                  textShadow: '0 2px 10px rgba(0,0,0,1), 0 1px 4px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.7)',
+                }}>
+                {currentArc?.name ?? '—'}
+              </h2>
+              <p className="font-body text-sm italic"
+                style={{
+                  color: '#f0ece0',
+                  textShadow: '0 1px 6px rgba(0,0,0,0.95), 0 0 12px rgba(0,0,0,0.8)',
+                }}>
+                {currentArc?.location ?? ''}
+              </p>
+            </div>
+          </div>
+
+          {/* Island card */}
+          <div className="shrink-0 h-full" style={{ width: 'clamp(90px, 22vw, 144px)' }}>
+            <IslandCard arc={currentArc} slug={slug} colors={colors} />
+          </div>
         </div>
       )}
 
     </div>
   )
+}
+
 }
 
 // ---- Bobbing ship ----
