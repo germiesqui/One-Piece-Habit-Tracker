@@ -52,9 +52,10 @@ export function VoyageHeader({ currentArc, arcProgress, bossHpMax }: VoyageHeade
   const slug      = islandSlug(currentArc?.name ?? '')
 
   return (
-    <div className="relative w-full overflow-hidden" style={{ height: 'clamp(170px, 44vw, 210px)' }}>
+    <div className="relative w-full overflow-hidden"
+      style={{ height: isBoss ? 'clamp(300px, 80vw, 420px)' : 'clamp(170px, 44vw, 210px)' }}>
 
-      {/* ---- BOSS MODE: fills entire header, no sea texture, no island card ---- */}
+      {/* ---- BOSS MODE ---- */}
       {isBoss && currentArc?.boss_name && (
         <motion.div
           key={`boss-${arcNum}`}
@@ -247,45 +248,54 @@ function IslandCard({
 // ---- Boss card ----
 function BossCard({
   bossName,
-  colors,
 }: {
   bossName: string
   colors: { from: string; to: string; accent: string }
 }) {
+  const [src, setSrc]       = useState('')
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    if (!bossName) return
+    setFailed(false)
+    const slug = bossName.toLowerCase().replace(/[^a-z0-9]+/g, '_')
+    setSrc(`/bosses/${slug}.webp`)
+  }, [bossName])
+
   const slug = bossName.toLowerCase().replace(/[^a-z0-9]+/g, '_')
 
   return (
-    <div className="relative w-full h-full">
-      {/* Try real boss image */}
-      <img
-        src={`/bosses/${slug}.png`}
-        alt={bossName}
-        className="absolute inset-0 w-full h-full object-cover object-top"
-        style={{ opacity: 0.85 }}
-        onError={e => {
-          // try webp fallback
-          const img = e.target as HTMLImageElement
-          if (!img.src.endsWith('.webp')) {
-            img.src = `/bosses/${slug}.webp`
-          } else {
-            img.style.display = 'none'
-          }
-        }}
-      />
+    <div className="relative w-full h-full" style={{ background: '#0a0a0a' }}>
+      {/* Boss image — contain so full image visible, no crop */}
+      {!failed && src && (
+        <img
+          src={src}
+          alt={bossName}
+          className="absolute inset-0 w-full h-full object-contain object-center"
+          onError={() => {
+            if (src.endsWith('.webp')) {
+              setSrc(`/bosses/${slug}.png`)
+            } else if (src.endsWith('.png')) {
+              setSrc(`/bosses/${slug}.jpg`)
+            } else {
+              setFailed(true)
+            }
+          }}
+        />
+      )}
 
-      {/* Dark overlay */}
-      <div
-        className="absolute inset-0"
-        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 60%, transparent 100%)' }}
-      />
+      {/* Fallback */}
+      {failed && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-6xl opacity-20">⚔️</span>
+        </div>
+      )}
 
-      {/* Placeholder */}
+      {/* Bottom gradient for HP bar readability */}
       <div
-        className="absolute inset-0 flex items-center justify-center -z-10"
-        style={{ background: `linear-gradient(135deg, ${colors.from}, ${colors.to})` }}
-      >
-        <span className="text-6xl opacity-30">⚔️</span>
-      </div>
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.1) 50%, transparent 100%)' }}
+      />
     </div>
   )
 }
