@@ -114,22 +114,20 @@ describe('arc bar progression', () => {
     }
   })
 
-  it('arc full but power not met → no action', () => {
-    const weakMembers: Member[] = [{ power: 30, bounty: 40 }] // below 50 power req
+  it('arc full but power not met → no boss unlock', () => {
+    const weakMembers: Member[] = [{ power: 30, bounty: 400 }] // low power, high bounty
     const result = checkArcAdvancement(
       arc, { status: 'active', progress_xp: 800, boss_current_hp: null }, weakMembers, false
     )
     expect(result.action).toBe('none')
-    if (result.action === 'none') expect(result.reason).toBe('stats not met')
   })
 
-  it('arc full but bounty not met → no action', () => {
-    const poorMembers: Member[] = [{ power: 60, bounty: 10 }] // below 30 bounty req
+  it('arc full + power met → unlock boss (even if bounty is low)', () => {
+    const strongLowBounty: Member[] = [{ power: 60, bounty: 10 }] // meets power, not bounty
     const result = checkArcAdvancement(
-      arc, { status: 'active', progress_xp: 800, boss_current_hp: null }, poorMembers, false
+      arc, { status: 'active', progress_xp: 800, boss_current_hp: null }, strongLowBounty, false
     )
-    expect(result.action).toBe('none')
-    if (result.action === 'none') expect(result.reason).toBe('stats not met')
+    expect(result.action).toBe('unlock_boss')
   })
 })
 

@@ -58,7 +58,7 @@ export function DashboardPage() {
   const budget = weeklyBudget(members.length)
   const myWeeklyXp = weeklyXp.find(w => w.user_id === profile.id)
 
-  // Stat gate check
+  // Stat gate checks
   const arcFull = arcProgress && currentArc
     ? arcProgress.progress_xp >= currentArc.xp_required
     : false
@@ -66,7 +66,13 @@ export function DashboardPage() {
   const avgBounty  = members.length ? members.reduce((s, m) => s + m.bounty, 0) / members.length : 0
   const powerNeeded  = currentArc ? Math.max(0, currentArc.power_required  - avgPower)  : 0
   const bountyNeeded = currentArc ? Math.max(0, currentArc.bounty_required - avgBounty) : 0
-  const statGateBlocking = arcFull && arcProgress?.status === 'active' && (powerNeeded > 0 || bountyNeeded > 0)
+
+  // Arc full but not enough Power → can't fight boss yet
+  const bossGateBlocking = arcFull && arcProgress?.status === 'active' && powerNeeded > 0
+  // Boss defeated but not enough Bounty → can't leave island yet
+  const bountyGateBlocking = arcProgress?.status === 'boss_active'
+    && (arcProgress.boss_current_hp ?? 1) <= 0
+    && bountyNeeded > 0
 
   // Boss fight data
   const bossHpMax = currentArc ? currentArc.boss_hp_base * Math.max(members.length, 1) : 0
@@ -90,24 +96,32 @@ export function DashboardPage() {
         <NotificationBanner userId={profile.id} partyId={profile.party_id} />
       )}
 
-      {/* ---- Stat gate warning ---- */}
+      {/* ---- Stat gate warnings ---- */}
       <AnimatePresence>
-        {statGateBlocking && (
+        {bossGateBlocking && (
           <motion.div
             initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             className="mx-4 mt-3 bg-parchment-200 border border-parchment-400 rounded px-3 py-2"
           >
             <p className="font-heading text-xs uppercase tracking-wide text-ink-700">
-              ⚠️ Arc complete — stats needed to proceed
+              ⚔️ Not strong enough to fight the boss yet
             </p>
-            <div className="flex gap-4 mt-1">
-              {powerNeeded > 0 && (
-                <p className="font-body text-xs text-ink-600">⚡ Need +{Math.ceil(powerNeeded)} avg Power</p>
-              )}
-              {bountyNeeded > 0 && (
-                <p className="font-body text-xs text-ink-600">💰 Need +{Math.ceil(bountyNeeded)} avg Bounty</p>
-              )}
-            </div>
+            <p className="font-body text-xs text-ink-600 mt-1">
+              ⚡ Need +{Math.ceil(powerNeeded)} avg Power — complete more Training and Study tasks
+            </p>
+          </motion.div>
+        )}
+        {bountyGateBlocking && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="mx-4 mt-3 bg-parchment-200 border border-parchment-400 rounded px-3 py-2"
+          >
+            <p className="font-heading text-xs uppercase tracking-wide text-ink-700">
+              🏴‍☠️ Boss defeated — but your bounty isn't high enough to sail on
+            </p>
+            <p className="font-body text-xs text-ink-600 mt-1">
+              💰 Need +{Math.ceil(bountyNeeded)} avg Bounty — complete more Immersion and Creation tasks
+            </p>
           </motion.div>
         )}
       </AnimatePresence>
