@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import type { Arc, ArcProgress } from '@/types'
 
 // ---- Island destination image ----
@@ -146,8 +146,6 @@ export function VoyageHeader({ currentArc, arcProgress, bossHpMax }: VoyageHeade
 
     </div>
   )
-}
-
 }
 
 // ---- Bobbing ship ----
